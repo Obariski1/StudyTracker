@@ -155,4 +155,86 @@ export class SupabaseService {
       .eq('id', id);
     if (error) throw error;
   }
+
+  // Authentication
+  async signUp(email: string, password: string) {
+    try {
+      console.log('Supabase: Signing up user:', email);
+      const { data, error } = await this.supabase.auth.signUp({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Supabase Error (signUp):', error);
+        throw error;
+      }
+      
+      console.log('Supabase: User signed up:', data);
+      return data;
+    } catch (error) {
+      console.error('Supabase Exception (signUp):', error);
+      throw error;
+    }
+  }
+
+  async signIn(email: string, password: string) {
+    try {
+      console.log('Supabase: Signing in user:', email);
+      const { data, error } = await this.supabase.auth.signInWithPassword({
+        email,
+        password,
+      });
+      
+      if (error) {
+        console.error('Supabase Error (signIn):', error);
+        throw error;
+      }
+      
+      console.log('Supabase: User signed in:', data);
+      return data;
+    } catch (error) {
+      console.error('Supabase Exception (signIn):', error);
+      throw error;
+    }
+  }
+
+  async signOut() {
+    try {
+      console.log('Supabase: Signing out user');
+      const { error } = await this.supabase.auth.signOut();
+      
+      if (error) {
+        console.error('Supabase Error (signOut):', error);
+        throw error;
+      }
+      
+      console.log('Supabase: User signed out');
+    } catch (error) {
+      console.error('Supabase Exception (signOut):', error);
+      throw error;
+    }
+  }
+
+  async getCurrentUser() {
+    try {
+      const { data, error } = await this.supabase.auth.getUser();
+      
+      if (error) {
+        console.error('Supabase Error (getCurrentUser):', error);
+        return null;
+      }
+      
+      return data.user;
+    } catch (error) {
+      console.error('Supabase Exception (getCurrentUser):', error);
+      return null;
+    }
+  }
+
+  onAuthStateChange(callback: (user: any) => void) {
+    return this.supabase.auth.onAuthStateChange((event, session) => {
+      callback(session?.user || null);
+    });
+  }
 }
