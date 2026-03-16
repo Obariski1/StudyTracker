@@ -1,0 +1,197 @@
+<div class="page-main" [style.display]="timerFullscreen ? 'block' : 'flex'">
+
+  <!-- ── FULLSCREEN TIMER MODE ── -->
+  <div *ngIf="timerFullscreen" style="width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--bg); padding: 20px;">
+    <!-- Timer Controls (top) -->
+    <div style="position: absolute; top: 20px; left: 20px; right: 20px;">
+      <div class="mode-toggle" style="margin-bottom: 20px;">
+        <button 
+          class="mode-btn" 
+          [class.active]="mode === 'stopwatch'"
+          (click)="toggleMode()"
+          [disabled]="(timer.running$ | async) ?? false">
+          Stoppuhr
+        </button>
+        <button 
+          class="mode-btn" 
+          [class.active]="mode === 'timer'"
+          (click)="toggleMode()"
+          [disabled]="(timer.running$ | async) ?? false">
+          Timer
+        </button>
+      </div>
+      <div *ngIf="mode === 'timer' && !((timer.running$ | async) ?? false)" style="display: flex; gap: 15px; margin-bottom: 20px; justify-content: center;">
+        <div style="text-align: center;">
+          <label class="form-label" style="font-size: 12px;">Minuten</label>
+          <input type="number" class="form-control" [(ngModel)]="timerMinutes" min="0" max="59" style="width: 60px; text-align: center;">
+        </div>
+        <div style="text-align: center;">
+          <label class="form-label" style="font-size: 12px;">Sekunden</label>
+          <input type="number" class="form-control" [(ngModel)]="timerSeconds" min="0" max="59" style="width: 60px; text-align: center;">
+        </div>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label">Module</label>
+        <select class="form-control" [(ngModel)]="selectedTopicId" [disabled]="(timer.running$ | async) ?? false" style="margin-bottom: 10px;">
+          <option value="">— Wähle ein Module —</option>
+          <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
+        </select>
+      </div>
+      <div style="margin-bottom: 20px;">
+        <label class="form-label">Notiz (optional)</label>
+        <input class="form-control" [(ngModel)]="note" placeholder="Worauf studierst du gerade?" [disabled]="(timer.running$ | async) ?? false">
+      </div>
+    </div>
+
+    <!-- Timer Display (center) -->
+    <div style="text-align: center;">
+      <div class="timer-display" [class.running]="(timer.running$ | async) ?? false" style="font-size: 120px; margin-bottom: 40px;">
+        {{ formatTime((timer.seconds$ | async) ?? 0) }}
+      </div>
+      <div *ngIf="selectedTopicId" style="margin-bottom: 30px; font-size: 20px; color: var(--muted);">
+        {{ topicName(selectedTopicId) }}
+      </div>
+      <div *ngIf="note" style="margin-bottom: 30px; font-size: 16px; color: var(--muted); font-style: italic;">
+        "{{ note }}"
+      </div>
+    </div>
+
+    <!-- Action Buttons (bottom) -->
+    <div class="btn-row" style="justify-content: center; gap: 20px; position: absolute; bottom: 20px;">
+      <button class="btn btn-start" (click)="start()" [disabled]="(timer.running$ | async) ?? false" style="font-size: 18px; padding: 15px 30px;">▶ Start</button>
+      <button class="btn btn-stop" (click)="stop()" [disabled]="!((timer.running$ | async) ?? false)" style="font-size: 18px; padding: 15px 30px;">■ Stopp</button>
+      <button class="btn" (click)="toggleTimerMinimized()" style="font-size: 16px; padding: 12px 24px; background: var(--muted); color: white;">← Zurück</button>
+    </div>
+  </div>
+
+  <!-- ── NORMAL MODE ── -->
+  <div *ngIf="!timerFullscreen" style="display: flex; width: 100%; gap: 20px;">
+
+  <!-- ── LEFT: Timer ── -->
+  <div class="main-left">
+    <div class="card">
+      <div class="card-header">
+        <div class="mode-toggle">
+          <button 
+            class="mode-btn" 
+            [class.active]="mode === 'stopwatch'"
+            (click)="toggleMode()"
+            [disabled]="(timer.running$ | async) ?? false">
+            Stoppuhr
+          </button>
+          <button 
+            class="mode-btn" 
+            [class.active]="mode === 'timer'"
+            (click)="toggleMode()"
+            [disabled]="(timer.running$ | async) ?? false">
+            Timer
+          </button>
+        </div>
+      </div>
+
+      <div class="timer-display" [class.running]="(timer.running$ | async) ?? false">
+        {{ formatTime((timer.seconds$ | async) ?? 0) }}
+      </div>
+
+      <div *ngIf="!timerFullscreen" [hidden]="timerFullscreen">
+        <div class="timer-input-group" *ngIf="mode === 'timer'">
+          <div class="timer-input">
+            <label class="form-label">Minuten</label>
+            <input type="number" class="form-control" [(ngModel)]="timerMinutes" min="0" max="59">
+          </div>
+          <div class="timer-input">
+            <label class="form-label">Sekunden</label>
+            <input type="number" class="form-control" [(ngModel)]="timerSeconds" min="0" max="59">
+          </div>
+        </div>
+
+        <label class="form-label">Module</label>
+        <select class="form-control" [(ngModel)]="selectedTopicId" [disabled]="(timer.running$ | async) ?? false">
+          <option value="">— Wähle ein Modul —</option>
+          <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
+        </select>
+
+        <label class="form-label" style="margin-top:14px">Notiz (optional)</label>
+        <textarea class="form-control note-input" [(ngModel)]="note"
+          placeholder="Was lernst du gerade?" [disabled]="(timer.running$ | async) ?? false"></textarea>
+
+        <div class="btn-row">
+          <button class="btn btn-start" (click)="start()" [disabled]="(timer.running$ | async) ?? false">▶ Start</button>
+          <button class="btn btn-stop"  (click)="stop()"  [disabled]="!((timer.running$ | async) ?? false)">■ Stopp</button>
+          <button 
+            class="btn"
+            (click)="toggleTimerMinimized()"
+            style="background: var(--accent); color: white; margin-left: auto;"
+            [title]="timerFullscreen ? 'Zurück' : 'Vollbild'">
+            {{ timerFullscreen ? '←' : '⛶' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live indicator -->
+    <div class="card card-live" *ngIf="timer.running$ | async">
+      <span class="live-dot"></span>
+      <span class="live-label">Sitzung läuft</span>
+      <span class="live-topic">{{ liveTopicName }}</span>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: Overview ── -->
+  <div class="main-right">
+    <div class="card">
+      <div class="card-title">Diese Woche</div>
+
+      <div class="stat-row">
+        <div class="stat-box">
+          <div class="stat-val">{{ statTotal }}</div>
+          <div class="stat-lbl">Gesamt diese Woche</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">{{ statAverage }}</div>
+          <div class="stat-lbl">Durchschnitt/Tag</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-val">{{ statSessions }}</div>
+          <div class="stat-lbl">Lernsitzungen</div>
+        </div>
+      </div>
+
+      <div class="week-bar-area">
+        <div class="week-bar-wrap" *ngFor="let bar of weekBars">
+          <div class="week-time-label">{{ bar.secs > 0 ? formatHM(bar.secs) : '' }}</div>
+          <div class="week-bar"
+            [style.height.px]="barHeight(bar.secs)"
+            [style.background]="bar.isToday ? 'var(--accent)' : 'var(--surface2)'"
+            [style.border]="bar.isToday ? 'none' : '1px solid var(--border)'"
+            [title]="formatHM(bar.secs)">
+          </div>
+          <div class="week-bar-label" [style.color]="bar.isToday ? 'var(--accent)' : ''">
+            {{ bar.label }}
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Letzte Sitzungen</div>
+      <div *ngIf="(storage.sessions$ | async)?.length === 0" class="no-sessions">
+        Noch keine Lernsitzungen. Beginne zu Lernen! 📖
+      </div>
+      <div class="recent-session" *ngFor="let s of ((storage.sessions$ | async) || []).slice(0, 5)">
+        <div class="session-dot" [style.background]="topicColor(s.topicId)"></div>
+        <div class="session-info">
+          <div class="session-name">{{ topicName(s.topicId) }}</div>
+          <div class="session-meta">
+            {{ sessionTime(s.start) }} - {{ sessionTime(s.end) }}
+            <span *ngIf="s.note"> · {{ s.note }}</span>
+          </div>
+        </div>
+        <div class="session-dur">{{ formatHM(s.duration) }}</div>
+        <button class="session-delete" (click)="deleteSession(s.id)" title="Sitzung löschen">✕</button>
+      </div>
+    </div>
+  </div>
+
+  </div>
+</div>

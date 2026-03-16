@@ -1,0 +1,42 @@
+<div class="page-topics">
+
+  <div class="topics-header">
+    <div class="page-title">Module</div>
+    <button class="btn-add" (click)="openModal()">+ Module hinzufügen</button>
+  </div>
+
+  <div class="topics-grid">
+    <div *ngIf="topics.length === 0" class="empty-topics">
+      Noch keine Module.<br>Füge dein erstes Module hinzu, um zu beginnen! 📚
+    </div>
+
+    <div class="topic-card" *ngFor="let t of topics">
+      <div class="topic-card-accent" [style.background]="t.color"></div>
+      <div class="topic-card-name">{{ t.name }}</div>
+      <div class="topic-card-desc">{{ t.desc || 'Keine Beschreibung' }}</div>
+      <div class="topic-card-stats">
+        <div class="topic-stat">
+          <div class="topic-stat-val" [style.color]="t.color">{{ totalTime(t.id) }}</div>
+          <div class="topic-stat-lbl">Gesamtzeit</div>
+        </div>
+        <div class="topic-stat">
+          <div class="topic-stat-val" [style.color]="t.color">{{ sessionCount(t.id) }}</div>
+          <div class="topic-stat-lbl">Sitzungen</div>
+        </div>
+      </div>
+      <div class="topic-actions">
+        <button class="btn-sm" (click)="openModal(t)">Bearbeiten</button>
+        <button class="btn-sm danger" (click)="deleteTopic(t)">Löschen</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal -->
+  <app-topic-modal
+    *ngIf="showModal"
+    [editTopic]="editingTopic"
+    (close)="closeModal()"
+    (saved)="closeModal()">
+  </app-topic-modal>
+
+</div>

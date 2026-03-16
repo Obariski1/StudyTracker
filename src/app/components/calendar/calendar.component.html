@@ -1,0 +1,70 @@
+<div class="page-calendar">
+
+  <!-- Header -->
+  <div class="cal-header">
+    <button class="cal-nav-btn" (click)="prev()">‹</button>
+    <button class="cal-nav-btn" (click)="next()">›</button>
+    <div class="cal-title">{{ calTitle }}</div>
+    <button class="cal-today-btn" (click)="today()">Heute</button>
+
+    <div class="cal-filter-row">
+      <span class="filter-label">Filtern:</span>
+      <button class="filter-chip" [class.active]="isFilterActive(null)" (click)="toggleFilter(null)">Alle</button>
+      <button class="filter-chip"
+        *ngFor="let t of topics"
+        [class.active]="isFilterActive(t.id)"
+        [ngStyle]="topicFilterStyle(t)"
+        (click)="toggleFilter(t.id)">
+        {{ t.name }}
+      </button>
+    </div>
+  </div>
+
+  <!-- Grid -->
+  <div class="cal-grid">
+    <div class="cal-weekdays">
+      <div class="cal-weekday" *ngFor="let d of weekdays">{{ d }}</div>
+    </div>
+    <div class="cal-days">
+      <div class="cal-day"
+        *ngFor="let day of days"
+        [class.other-month]="day.otherMonth"
+        [class.today]="day.isToday"
+        [class.selected]="isSelected(day)"
+        (click)="selectDay(day)">
+        <div class="day-num">{{ day.date.getDate() }}</div>
+        <ng-container *ngFor="let s of day.sessions.slice(0, 2)">
+          <div class="day-event"
+            [style.background]="topicColor(s.topicId) + '22'"
+            [style.color]="topicColor(s.topicId)">
+            {{ topicName(s.topicId) }} · {{ formatHM(s.duration) }}
+          </div>
+        </ng-container>
+        <div class="day-more" *ngIf="day.sessions.length > 2">
+          +{{ day.sessions.length - 2 }} weitere
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Detail panel -->
+  <div class="session-panel">
+    <div class="session-panel-title">{{ selectedDayTitle }}</div>
+
+    <div *ngIf="!selectedDay || selectedDay.sessions.length === 0" class="no-sessions">
+      {{ selectedDay ? 'Keine Sitzungen an diesem Tag' : 'Wähle einen Tag aus, um Sitzungen zu sehen' }}
+    </div>
+
+    <div class="session-item" *ngFor="let s of selectedDay?.sessions">
+      <div class="session-color-bar" [style.background]="topicColor(s.topicId)"></div>
+      <div class="session-item-info">
+        <div class="session-item-topic">{{ topicName(s.topicId) }}</div>
+        <div class="session-item-time">{{ sessionTimeRange(s) }}</div>
+        <div class="session-item-note" *ngIf="s.note">{{ s.note }}</div>
+      </div>
+      <div class="session-item-dur">{{ formatHM(s.duration) }}</div>
+      <button class="session-delete" (click)="deleteSession(s.id)">✕</button>
+    </div>
+  </div>
+
+</div>
