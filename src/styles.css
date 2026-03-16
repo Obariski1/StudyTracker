@@ -275,8 +275,14 @@ nav {
   display: flex;
   gap: 24px;
   padding: 32px;
-  min-height: calc(100vh - 60px);
   animation: fadeIn .3s ease;
+}
+
+.normal-mode-wrapper {
+  display: flex;
+  width: 100%;
+  gap: 20px;
+  flex: 1;
 }
 
 .main-left {
@@ -293,6 +299,7 @@ nav {
   flex-direction: column;
   gap: 20px;
   min-width: 0;
+  overflow-y: auto;
 }
 
 /* Timer */
@@ -556,10 +563,54 @@ nav {
 ::-webkit-scrollbar-thumb { background: var(--border); border-radius: 3px; }
 
 /* ── RESPONSIVE ──────────────────────────────────────────────────── */
-@media (max-width: 768px) {
-  .page-main { flex-direction: column; padding: 16px; }
-  .main-left { width: 100%; }
+@media (max-width: 1023px) {
+  .page-main { 
+    flex-direction: column !important;
+    padding: 16px;
+    gap: 20px;
+    display: flex !important;
+    min-height: auto !important;
+    height: auto !important;
+  }
+  
+  .normal-mode-wrapper {
+    display: flex !important;
+    flex-direction: column !important;
+    width: 100% !important;
+    gap: 20px !important;
+  }
+  
+  .main-left { 
+    width: 100% !important;
+    flex-shrink: 0;
+    min-width: 100%;
+  }
+  
+  .main-right { 
+    width: 100% !important;
+    flex: 0 !important;
+    min-width: 100%;
+  }
+  
   .page-calendar, .page-topics { padding: 16px; }
   nav { padding: 0 16px; }
+  .nav-right { flex-wrap: wrap; }
   .cal-filter-row { margin-left: 0; }
+  
+  .timer-display {
+    font-size: 48px;
+  }
+  
+  .stat-row {
+    flex-direction: column;
+  }
+  
+  .stat-box {
+    padding: 12px;
+  }
+  
+  .recent-session {
+    padding: 12px 0;
+    font-size: 13px;
+  }
 }
