@@ -237,4 +237,157 @@ export class SupabaseService {
       callback(session?.user || null);
     });
   }
+
+  // Todos
+  async getTodos() {
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await this.supabase
+        .from('todos')
+        .select('id, title, description, topic_id, due_date, completed, created_at, updated_at')
+        .eq('user_id', user.id)
+        .order('due_date', { ascending: true });
+      
+      if (error) throw error;
+      
+      return data?.map(t => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        topicId: t.topic_id,
+        dueDate: t.due_date,
+        completed: t.completed,
+        createdAt: t.created_at,
+        updatedAt: t.updated_at
+      })) || [];
+    } catch (error) {
+      console.error('Supabase Error (getTodos):', error);
+      throw error;
+    }
+  }
+
+  async addTodo(todo: any) {
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await this.supabase
+        .from('todos')
+        .insert([{
+          title: todo.title,
+          description: todo.description || null,
+          topic_id: todo.topicId || null,
+          due_date: todo.dueDate,
+          user_id: user.id,
+          completed: false
+        }])
+        .select();
+      
+      if (error) throw error;
+      const created = data?.[0];
+      if (!created) return null;
+
+      return {
+        id: created.id,
+        title: created.title,
+        description: created.description,
+        topicId: created.topic_id,
+        dueDate: created.due_date,
+        completed: created.completed,
+        createdAt: created.created_at,
+        updatedAt: created.updated_at
+      };
+    } catch (error) {
+      console.error('Supabase Error (addTodo):', error);
+      throw error;
+    }
+  }
+
+  async updateTodo(id: string, todo: any) {
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await this.supabase
+        .from('todos')
+        .update({
+          title: todo.title,
+          description: todo.description,
+          topic_id: todo.topicId,
+          due_date: todo.dueDate,
+          completed: todo.completed
+        })
+        .eq('id', id)
+        .eq('user_id', user.id)
+        .select();
+      
+      if (error) throw error;
+      const updated = data?.[0];
+      if (!updated) return null;
+
+      return {
+        id: updated.id,
+        title: updated.title,
+        description: updated.description,
+        topicId: updated.topic_id,
+        dueDate: updated.due_date,
+        completed: updated.completed,
+        createdAt: updated.created_at,
+        updatedAt: updated.updated_at
+      };
+    } catch (error) {
+      console.error('Supabase Error (updateTodo):', error);
+      throw error;
+    }
+  }
+
+  async deleteTodo(id: string) {
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const { error } = await this.supabase
+        .from('todos')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+      
+      if (error) throw error;
+    } catch (error) {
+      console.error('Supabase Error (deleteTodo):', error);
+      throw error;
+    }
+  }
+
+  async getTodosByDate(date: string) {
+    try {
+      const user = await this.getCurrentUser();
+      if (!user) throw new Error('User not authenticated');
+      
+      const { data, error } = await this.supabase
+        .from('todos')
+        .select('id, title, description, topic_id, due_date, completed, created_at, updated_at')
+        .eq('user_id', user.id)
+        .eq('due_date', date)
+        .order('created_at', { ascending: false });
+      
+      if (error) throw error;
+      
+      return data?.map(t => ({
+        id: t.id,
+        title: t.title,
+        description: t.description,
+        topicId: t.topic_id,
+        dueDate: t.due_date,
+        completed: t.completed,
+        createdAt: t.created_at,
+        updatedAt: t.updated_at
+      })) || [];
+    } catch (error) {
+      console.error('Supabase Error (getTodosByDate):', error);
+      throw error;
+    }
+  }
 }

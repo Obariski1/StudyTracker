@@ -32,16 +32,29 @@
         [class.today]="day.isToday"
         [class.selected]="isSelected(day)"
         (click)="selectDay(day)">
-        <div class="day-num">{{ day.date.getDate() }}</div>
-        <ng-container *ngFor="let s of day.sessions.slice(0, 2)">
+        <div class="day-top">
+          <div class="day-num">{{ day.date.getDate() }}</div>
+          <div class="day-counts" *ngIf="day.todos.length || day.sessions.length">
+            <span class="day-count day-count-todo" *ngIf="day.todos.length">{{ day.todos.length }}T</span>
+            <span class="day-count day-count-session" *ngIf="day.sessions.length">{{ day.sessions.length }}S</span>
+          </div>
+        </div>
+        <ng-container *ngFor="let s of day.sessions.slice(0, 1)">
           <div class="day-event"
             [style.background]="topicColor(s.topicId) + '22'"
             [style.color]="topicColor(s.topicId)">
             {{ topicName(s.topicId) }} · {{ formatHM(s.duration) }}
           </div>
         </ng-container>
-        <div class="day-more" *ngIf="day.sessions.length > 2">
-          +{{ day.sessions.length - 2 }} weitere
+        <ng-container *ngFor="let t of day.todos.slice(0, 1)">
+          <div class="day-event"
+            [style.background]="topicColor(t.topicId) + '1a'"
+            [style.color]="topicColor(t.topicId)">
+            Todo · {{ t.title }}
+          </div>
+        </ng-container>
+        <div class="day-more" *ngIf="day.sessions.length + day.todos.length > 2">
+          +{{ day.sessions.length + day.todos.length - 2 }} weitere
         </div>
       </div>
     </div>
@@ -51,9 +64,26 @@
   <div class="session-panel">
     <div class="session-panel-title">{{ selectedDayTitle }}</div>
 
-    <div *ngIf="!selectedDay || selectedDay.sessions.length === 0" class="no-sessions">
-      {{ selectedDay ? 'Keine Sitzungen an diesem Tag' : 'Wähle einen Tag aus, um Sitzungen zu sehen' }}
+    <div *ngIf="!selectedDay || (selectedDay.sessions.length === 0 && selectedDay.todos.length === 0)" class="no-sessions">
+      {{ selectedDay ? 'Keine Einträge an diesem Tag' : '' }}
     </div>
+
+    <div class="session-panel-title" *ngIf="selectedDay?.todos?.length">Todos</div>
+    <div class="session-item" *ngFor="let t of selectedDay?.todos">
+      <div class="session-color-bar" [style.background]="topicColor(t.topicId)"></div>
+      <div class="session-item-info">
+        <div class="session-item-topic">{{ t.title }}</div>
+        <div class="session-item-time">
+          Fällig am {{ t.dueDate }}
+          <span *ngIf="t.topicId"> · {{ topicName(t.topicId) }}</span>
+        </div>
+        <div class="session-item-note" *ngIf="t.description">{{ t.description }}</div>
+      </div>
+      <div class="session-item-dur">{{ t.completed ? 'Erledigt' : 'Offen' }}</div>
+      <button class="session-delete" (click)="deleteTodo(t.id)">✕</button>
+    </div>
+
+    <div class="session-panel-title" *ngIf="selectedDay?.sessions?.length">Sitzungen</div>
 
     <div class="session-item" *ngFor="let s of selectedDay?.sessions">
       <div class="session-color-bar" [style.background]="topicColor(s.topicId)"></div>
@@ -64,6 +94,23 @@
       </div>
       <div class="session-item-dur">{{ formatHM(s.duration) }}</div>
       <button class="session-delete" (click)="deleteSession(s.id)">✕</button>
+    </div>
+  </div>
+
+  <!-- Delete Confirmation Modal -->
+  <div class="modal-overlay modal-overlay-delete" *ngIf="showDeleteConfirm" (click)="cancelDelete()"></div>
+  <div class="modal modal-delete" *ngIf="showDeleteConfirm">
+    <div class="modal-header">
+      <h2 class="modal-title">Bestätigung</h2>
+    </div>
+    <div style="padding: 20px;">
+      <p style="font-size: 14px; color: var(--text); margin-bottom: 20px;">
+        {{ deleteConfirmType === 'session' ? 'Willst du diese Sitzung wirklich löschen?' : 'Willst du diesen Todo wirklich löschen?' }}
+      </p>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-add" (click)="confirmDelete()" style="flex: 1;">Ja, löschen</button>
+        <button class="btn btn-cancel" (click)="cancelDelete()" style="flex: 1;">Abbrechen</button>
+      </div>
     </div>
   </div>
 

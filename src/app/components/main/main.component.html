@@ -22,23 +22,23 @@
       </div>
       <div *ngIf="mode === 'timer' && !((timer.running$ | async) ?? false)" style="display: flex; gap: 15px; margin-bottom: 20px; justify-content: center;">
         <div style="text-align: center;">
-          <label class="form-label" style="font-size: 12px;">Minuten</label>
-          <input type="number" class="form-control" [(ngModel)]="timerMinutes" min="0" max="59" style="width: 60px; text-align: center;">
+          <label class="form-label" style="font-size: 12px;">Stunden</label>
+          <input type="number" class="form-control" [(ngModel)]="timerHours" min="0" max="99" style="width: 70px; text-align: center;">
         </div>
         <div style="text-align: center;">
-          <label class="form-label" style="font-size: 12px;">Sekunden</label>
-          <input type="number" class="form-control" [(ngModel)]="timerSeconds" min="0" max="59" style="width: 60px; text-align: center;">
+          <label class="form-label" style="font-size: 12px;">Minuten</label>
+          <input type="number" class="form-control" [(ngModel)]="timerMinutes" min="0" max="59" style="width: 70px; text-align: center;">
         </div>
       </div>
       <div style="margin-bottom: 20px;">
-        <label class="form-label">Module</label>
-        <select class="form-control" [(ngModel)]="selectedTopicId" [disabled]="(timer.running$ | async) ?? false" style="margin-bottom: 10px;">
-          <option value="">— Wähle ein Module —</option>
+        <label class="form-label">Themen</label>
+        <select class="form-control module-select" [class.placeholder]="!selectedTopicId" [(ngModel)]="selectedTopicId" [disabled]="(timer.running$ | async) ?? false" style="margin-bottom: 10px;">
+          <option value=""></option>
           <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
         </select>
       </div>
       <div style="margin-bottom: 20px;">
-        <label class="form-label">Notiz (optional)</label>
+        <label class="form-label">Notiz</label>
         <input class="form-control" [(ngModel)]="note" placeholder="Worauf studierst du gerade?" [disabled]="(timer.running$ | async) ?? false">
       </div>
     </div>
@@ -96,28 +96,31 @@
       <div *ngIf="!timerFullscreen" [hidden]="timerFullscreen">
         <div class="timer-input-group" *ngIf="mode === 'timer'">
           <div class="timer-input">
+            <label class="form-label">Stunden</label>
+            <input type="number" class="form-control" [(ngModel)]="timerHours" min="0" max="99">
+          </div>
+          <div class="timer-input">
             <label class="form-label">Minuten</label>
             <input type="number" class="form-control" [(ngModel)]="timerMinutes" min="0" max="59">
           </div>
-          <div class="timer-input">
-            <label class="form-label">Sekunden</label>
-            <input type="number" class="form-control" [(ngModel)]="timerSeconds" min="0" max="59">
-          </div>
         </div>
 
-        <label class="form-label">Module</label>
-        <select class="form-control" [(ngModel)]="selectedTopicId" [disabled]="(timer.running$ | async) ?? false">
-          <option value="">— Wähle ein Modul —</option>
+        <label class="form-label">Themen</label>
+        <select class="form-control module-select" [class.placeholder]="!selectedTopicId" [(ngModel)]="selectedTopicId" [disabled]="(timer.running$ | async) ?? false">
+          <option value=""></option>
           <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
         </select>
 
-        <label class="form-label" style="margin-top:14px">Notiz (optional)</label>
+        <label class="form-label" style="margin-top:14px">Notiz</label>
         <textarea class="form-control note-input" [(ngModel)]="note"
-          placeholder="Was lernst du gerade?" [disabled]="(timer.running$ | async) ?? false"></textarea>
+          placeholder="" [disabled]="(timer.running$ | async) ?? false"></textarea>
 
         <div class="btn-row">
           <button class="btn btn-start" (click)="start()" [disabled]="(timer.running$ | async) ?? false">▶ Start</button>
           <button class="btn btn-stop"  (click)="stop()"  [disabled]="!((timer.running$ | async) ?? false)">■ Stopp</button>
+          <button class="btn btn-add" (click)="openSessionModal()" title="Sitzung nachtragen">
+            + Nachtragen
+          </button>
           <button 
             class="btn"
             (click)="toggleTimerMinimized()"
@@ -135,6 +138,187 @@
       <span class="live-label">Sitzung läuft</span>
       <span class="live-topic">{{ liveTopicName }}</span>
     </div>
+
+    <!-- Log Session Modal -->
+    <div class="modal-overlay modal-overlay-form" *ngIf="showSessionModal"></div>
+    <div class="modal modal-form" *ngIf="showSessionModal">
+      <div class="modal-header">
+        <h2 class="modal-title">Sitzung nachtragen</h2>
+      </div>
+
+      <form style="padding: 20px;">
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Datum</label>
+          <input
+            class="form-control"
+            type="date"
+            [(ngModel)]="loggedSessionDate"
+            name="loggedSessionDate"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Start-Uhrzeit</label>
+          <input
+            class="form-control"
+            type="time"
+            [(ngModel)]="loggedSessionStartTime"
+            name="startTime"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">End-Uhrzeit</label>
+          <input
+            class="form-control"
+            type="time"
+            [(ngModel)]="loggedSessionEndTime"
+            name="endTime"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Themen</label>
+          <select class="form-control" [(ngModel)]="loggedSessionTopicId" name="topicId">
+            <option value=""></option>
+            <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Notiz </label>
+          <textarea
+            class="form-control note-input"
+            [(ngModel)]="loggedSessionNote"
+            name="note"
+            placeholder=""></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-add" (click)="logSession()" style="flex: 1;">Sitzung eintragen</button>
+          <button type="button" class="btn btn-cancel" (click)="closeSessionModal()" style="flex: 1;">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Mein Tag Section -->
+    <div class="card">
+      <div class="card-title">Mein Tag</div>
+      <div *ngIf="todaysTodos.length === 0 && todaysCompletedTodos.length === 0" style="color: var(--muted); text-align: center; padding: 20px 0;">
+        Heute keine Todos
+      </div>
+      <div *ngIf="todaysTodos.length === 0 && todaysCompletedTodos.length > 0" style="color: var(--accent); text-align: center; padding: 20px 0; font-weight: 600;">
+        Alle Todos für heute fertig 🎉
+      </div>
+      
+      <!-- Active Todos -->
+      <div *ngFor="let todo of todaysTodos" class="todo-item" (click)="editTodo(todo)" style="cursor: pointer;">
+        <input 
+          type="checkbox" 
+          [checked]="todo.completed"
+          (change)="todosService.updateTodo(todo.id, { completed: !todo.completed })"
+          (click)="$event.stopPropagation()"
+          class="todo-checkbox">
+        
+        <div class="todo-content">
+          <div class="todo-title">{{ todo.title }}</div>
+          <div *ngIf="todo.description" class="todo-desc">{{ todo.description }}</div>
+          <div class="todo-meta">
+            <span *ngIf="todo.topicId" class="todo-topic" [style.background]="topicColor(todo.topicId)">
+              {{ topicName(todo.topicId) }}
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Completed Todos -->
+      <div *ngIf="todaysCompletedTodos.length > 0" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border);">
+        <div style="font-size: 11px; font-weight: 700; letter-spacing: 2px; color: var(--muted); text-transform: uppercase; margin-bottom: 12px;">
+          Erledigt
+        </div>
+        <div *ngFor="let todo of todaysCompletedTodos" class="todo-item completed" (click)="editTodo(todo)" style="cursor: pointer;">
+          <input 
+            type="checkbox" 
+            [checked]="true"
+            (change)="todosService.updateTodo(todo.id, { completed: !todo.completed })"
+            (click)="$event.stopPropagation()"
+            class="todo-checkbox">
+          
+          <div class="todo-content">
+            <div class="todo-title">{{ todo.title }}</div>
+            <div *ngIf="todo.description" class="todo-desc">{{ todo.description }}</div>
+            <div class="todo-meta">
+              <span *ngIf="todo.topicId" class="todo-topic" [style.background]="topicColor(todo.topicId)">
+                {{ topicName(todo.topicId) }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Session Modal -->
+    <div class="modal-overlay modal-overlay-form" *ngIf="showEditSessionModal"></div>
+    <div class="modal modal-form" *ngIf="showEditSessionModal">
+      <div class="modal-header">
+        <h2 class="modal-title">Sitzung bearbeiten</h2>
+      </div>
+
+      <form style="padding: 20px;">
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Datum</label>
+          <input
+            class="form-control"
+            type="date"
+            [(ngModel)]="editingSessionDate"
+            name="editingSessionDate"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Start-Uhrzeit</label>
+          <input
+            class="form-control"
+            type="time"
+            [(ngModel)]="editingSessionStartTime"
+            name="editingStartTime"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">End-Uhrzeit</label>
+          <input
+            class="form-control"
+            type="time"
+            [(ngModel)]="editingSessionEndTime"
+            name="editingEndTime"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Themen</label>
+          <select class="form-control" [(ngModel)]="editingSessionTopicId" name="editingTopicId">
+            <option value=""></option>
+            <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Notiz </label>
+          <textarea
+            class="form-control note-input"
+            [(ngModel)]="editingSessionNote"
+            name="editingNote"
+            placeholder=""></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-add" (click)="saveSessionEdit()" style="flex: 1;">Speichern</button>
+          <button type="button" class="btn btn-cancel" (click)="closeEditSessionModal()" style="flex: 1;">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+
   </div>
 
   <!-- ── RIGHT: Overview ── -->
@@ -178,7 +362,7 @@
       <div *ngIf="(storage.sessions$ | async)?.length === 0" class="no-sessions">
         Noch keine Lernsitzungen. Beginne zu Lernen! 📖
       </div>
-      <div class="recent-session" *ngFor="let s of ((storage.sessions$ | async) || []).slice(0, 5)">
+      <div class="recent-session" *ngFor="let s of ((storage.sessions$ | async) || []).slice(0, 5)" (click)="editSession(s.id)" style="cursor: pointer;">
         <div class="session-dot" [style.background]="topicColor(s.topicId)"></div>
         <div class="session-info">
           <div class="session-name">{{ topicName(s.topicId) }}</div>
@@ -188,7 +372,22 @@
           </div>
         </div>
         <div class="session-dur">{{ formatHM(s.duration) }}</div>
-        <button class="session-delete" (click)="deleteSession(s.id)" title="Sitzung löschen">✕</button>
+        <button class="session-delete" (click)="deleteSession(s.id); $event.stopPropagation()" title="Sitzung löschen">✕</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Delete Session Confirmation Modal -->
+  <div class="modal-overlay modal-overlay-delete" *ngIf="showDeleteConfirm" (click)="cancelDeleteSession()"></div>
+  <div class="modal modal-delete" *ngIf="showDeleteConfirm">
+    <div class="modal-header">
+      <h2 class="modal-title">Bestätigung</h2>
+    </div>
+    <div style="padding: 20px;">
+      <p style="font-size: 14px; color: var(--text); margin-bottom: 20px;">Willst du diese Sitzung wirklich löschen?</p>
+      <div style="display: flex; gap: 10px;">
+        <button class="btn btn-add" (click)="confirmDeleteSession()" style="flex: 1;">Ja, löschen</button>
+        <button class="btn btn-cancel" (click)="cancelDeleteSession()" style="flex: 1;">Abbrechen</button>
       </div>
     </div>
   </div>

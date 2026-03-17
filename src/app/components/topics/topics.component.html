@@ -1,13 +1,13 @@
 <div class="page-topics">
 
   <div class="topics-header">
-    <div class="page-title">Module</div>
-    <button class="btn-add" (click)="openModal()">+ Module hinzufügen</button>
+    <div class="page-title">Themen</div>
+    <button class="btn-add" (click)="openModal()">+ Thema hinzufügen</button>
   </div>
 
   <div class="topics-grid">
     <div *ngIf="topics.length === 0" class="empty-topics">
-      Noch keine Module.<br>Füge dein erstes Module hinzu, um zu beginnen! 📚
+      Noch keine Themen.<br>Füge dein erstes Thema hinzu, um zu beginnen! 📚
     </div>
 
     <div class="topic-card" *ngFor="let t of topics">
@@ -22,6 +22,10 @@
         <div class="topic-stat">
           <div class="topic-stat-val" [style.color]="t.color">{{ sessionCount(t.id) }}</div>
           <div class="topic-stat-lbl">Sitzungen</div>
+        </div>
+        <div class="topic-stat">
+          <div class="topic-stat-val" [style.color]="t.color">{{ todoCount(t.id) }}</div>
+          <div class="topic-stat-lbl">Todo</div>
         </div>
       </div>
       <div class="topic-actions">

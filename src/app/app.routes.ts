@@ -26,5 +26,11 @@ export const routes: Routes = [
       import('./components/topics/topics.component').then(m => m.TopicsComponent),
     canActivate: [authGuard],
   },
+  {
+    path: 'todos',
+    loadComponent: () =>
+      import('./components/todos/todos.component').then(m => m.TodosComponent),
+    canActivate: [authGuard],
+  },
   { path: '**', redirectTo: 'main' },
 ];

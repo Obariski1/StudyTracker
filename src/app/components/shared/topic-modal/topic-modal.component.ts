@@ -13,7 +13,7 @@ const COLORS = ['#c8f04c','#7b6ef6','#f06060','#60c0f0','#f0a060','#60f0b0','#f0
   template: `
     <div class="modal-backdrop" (click)="onBackdrop($event)">
       <div class="modal" role="dialog">
-        <div class="modal-title">{{ editTopic ? 'Module bearbeiten' : 'Module hinzufügen' }}</div>
+        <div class="modal-title">{{ editTopic ? 'Thema bearbeiten' : 'Thema hinzufügen' }}</div>
 
         <div class="form-group">
           <label class="form-label">Name</label>

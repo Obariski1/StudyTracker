@@ -2,8 +2,10 @@ import { Component, OnInit, OnDestroy } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { Subscription } from 'rxjs';
 import { StorageService } from '../../services/storage.service';
+import { TodosService } from '../../services/todos.service';
 import { Topic } from '../../models/topic.model';
 import { StudySession } from '../../models/session.model';
+import { Todo } from '../../models/todo.model';
 import { TopicModalComponent } from '../shared/topic-modal/topic-modal.component';
 
 @Component({
@@ -15,16 +17,21 @@ import { TopicModalComponent } from '../shared/topic-modal/topic-modal.component
 export class TopicsComponent implements OnInit, OnDestroy {
   topics: Topic[] = [];
   sessions: StudySession[] = [];
+  todos: Todo[] = [];
   showModal = false;
   editingTopic: Topic | null = null;
 
   private subs = new Subscription();
 
-  constructor(private storage: StorageService) {}
+  constructor(
+    private storage: StorageService,
+    private todosService: TodosService
+  ) {}
 
   ngOnInit(): void {
     this.subs.add(this.storage.topics$.subscribe(t => (this.topics = t)));
     this.subs.add(this.storage.sessions$.subscribe(s => (this.sessions = s)));
+    this.subs.add(this.todosService.todos$.subscribe(t => (this.todos = t)));
   }
 
   ngOnDestroy(): void { this.subs.unsubscribe(); }
@@ -43,6 +50,10 @@ export class TopicsComponent implements OnInit, OnDestroy {
 
   sessionCount(topicId: string): number {
     return this.sessions.filter(s => s.topicId === topicId).length;
+  }
+
+  todoCount(topicId: string): number {
+    return this.todos.filter(t => t.topicId === topicId).length;
   }
 
   totalTime(topicId: string): string {

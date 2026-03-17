@@ -137,6 +137,30 @@ export class StorageService {
     }
   }
 
+  async updateSession(id: string, updates: Partial<StudySession>): Promise<void> {
+    try {
+      // Optimistic update: update locally immediately
+      const list = this.getSessions();
+      const index = list.findIndex(s => s.id === id);
+      if (index !== -1) {
+        list[index] = { ...list[index], ...updates };
+        this._sessions$.next([...list]);
+        console.log('Storage: Session updated locally:', id);
+      }
+      
+      // Update database in background
+      // For now, assume supabase service has an updateSession method
+      if ('updateSession' in this.supabase) {
+        await (this.supabase as any).updateSession(id, updates);
+        console.log('Storage: Session updated in database:', id);
+      }
+    } catch (error) {
+      console.error('Failed to update session:', error);
+      // Reload to revert optimistic update on error
+      await this.loadSessions();
+    }
+  }
+
   async deleteSession(id: string): Promise<void> {
     try {
       // Optimistic update: remove from local state immediately
