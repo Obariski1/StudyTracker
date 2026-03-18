@@ -338,8 +338,9 @@ export class CalendarComponent implements OnInit, OnDestroy {
       note: this.editingSessionNote,
     };
 
+    const editingSessionId = this.editingSessionId;
     this.closeEditSessionModal();
-    await this.storage.updateSession(this.editingSessionId, updates);
+    await this.storage.updateSession(editingSessionId, updates);
   }
 
   editTodo(todo: Todo): void {
@@ -368,8 +369,9 @@ export class CalendarComponent implements OnInit, OnDestroy {
       completed: this.editingTodoCompleted,
     };
 
+    const editingTodoId = this.editingTodoId;
     this.closeEditTodoModal();
-    await this.todosService.updateTodo(this.editingTodoId, updates);
+    await this.todosService.updateTodo(editingTodoId, updates);
   }
 
   private formatTimeInput(date: Date): string {

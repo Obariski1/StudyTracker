@@ -259,10 +259,11 @@ export class MainComponent implements OnInit, OnDestroy {
       note: this.editingSessionNote,
     };
 
+    const editingSessionId = this.editingSessionId;
     this.closeEditSessionModal();
 
     try {
-      await this.storage.updateSession(this.editingSessionId, updates);
+      await this.storage.updateSession(editingSessionId, updates);
     } catch (error) {
       console.error('Error updating session:', error);
     }
