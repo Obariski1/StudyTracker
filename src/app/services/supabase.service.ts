@@ -1,6 +1,7 @@
 import { Injectable } from '@angular/core';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 import { environment } from '../../environments/environment';
+import { StudySession } from '../models/session.model';
 
 @Injectable({ providedIn: 'root' })
 export class SupabaseService {
@@ -146,6 +147,29 @@ export class SupabaseService {
       console.error('Supabase Exception (addSession):', error);
       throw error;
     }
+  }
+
+  async updateSession(id: string, updates: Partial<StudySession>) {
+    const payload: Record<string, string | number | null> = {};
+
+    if (updates.topicId !== undefined) payload['topic_id'] = updates.topicId;
+    if (updates.note !== undefined) payload['note'] = updates.note;
+    if (updates.start !== undefined) payload['start'] = updates.start;
+    if (updates.end !== undefined) payload['end'] = updates.end;
+    if (updates.duration !== undefined) payload['duration'] = updates.duration;
+
+    if (Object.keys(payload).length === 0) {
+      return null;
+    }
+
+    const { data, error } = await this.supabase
+      .from('sessions')
+      .update(payload)
+      .eq('id', id)
+      .select();
+
+    if (error) throw error;
+    return data?.[0];
   }
 
   async deleteSession(id: string) {

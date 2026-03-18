@@ -583,6 +583,11 @@ nav.hidden {
   z-index: 240;
 
 }
+
+.modal-overlay-form.active-form-overlay {
+  display: block;
+  z-index: 340;
+}
 .modal-backdrop {
   position: fixed; inset: 0;
   background: rgba(0,0,0,.7);
@@ -614,6 +619,18 @@ nav.hidden {
   width: 100%;
   z-index: 250;
   position: relative;
+}
+
+.modal-form.modal-form-floating {
+  position: fixed;
+  top: 96px;
+  left: 50%;
+  transform: translateX(-50%);
+  animation: slideUpFloating 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  width: min(560px, calc(100vw - 32px));
+  max-height: calc(100vh - 128px);
+  overflow-y: auto;
+  z-index: 350;
 }
 
 .modal-header {
@@ -671,6 +688,7 @@ nav.hidden {
 /* ── ANIMATIONS ──────────────────────────────────────────────────── */
 @keyframes fadeIn { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+@keyframes slideUpFloating { from { opacity: 0; transform: translate(-50%, 20px); } to { opacity: 1; transform: translate(-50%, 0); } }
 @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.65} }
 
 /* ── SCROLLBAR ───────────────────────────────────────────────────── */
@@ -680,6 +698,21 @@ nav.hidden {
 
 /* ── RESPONSIVE ──────────────────────────────────────────────────── */
 @media (max-width: 1023px) {
+  .modal-form.modal-form-floating {
+    top: 86px;
+    width: min(640px, calc(100vw - 24px));
+    max-height: calc(100vh - 106px);
+    border-radius: 14px;
+  }
+
+  .modal-form.modal-form-floating .modal-header {
+    padding: 16px 18px;
+  }
+
+  .modal-form.modal-form-floating form {
+    padding: 16px !important;
+  }
+
   .page-main { 
     flex-direction: column !important;
     padding: 76px 16px 16px !important;
@@ -733,6 +766,25 @@ nav.hidden {
 
 /* Extra small screens - stack navbar vertically */
 @media (max-width: 640px) {
+  .modal-form.modal-form-floating {
+    top: 74px;
+    width: calc(100vw - 16px);
+    max-height: calc(100vh - 90px);
+    border-radius: 12px;
+  }
+
+  .modal-form.modal-form-floating .modal-header {
+    padding: 14px 16px;
+  }
+
+  .modal-form.modal-form-floating .modal-title {
+    font-size: 16px;
+  }
+
+  .modal-form.modal-form-floating form {
+    padding: 14px !important;
+  }
+
   nav {
     flex-direction: column;
     align-items: stretch;

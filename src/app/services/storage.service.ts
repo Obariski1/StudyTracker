@@ -149,15 +149,63 @@ export class StorageService {
       }
       
       // Update database in background
-      // For now, assume supabase service has an updateSession method
-      if ('updateSession' in this.supabase) {
-        await (this.supabase as any).updateSession(id, updates);
-        console.log('Storage: Session updated in database:', id);
-      }
+      await this.supabase.updateSession(id, updates);
+      console.log('Storage: Session updated in database:', id);
     } catch (error) {
       console.error('Failed to update session:', error);
       // Reload to revert optimistic update on error
       await this.loadSessions();
+    }
+  }
+
+  async normalizeSessionTimestamps(maxDriftMinutes = 2): Promise<number> {
+    const driftThresholdMs = maxDriftMinutes * 60 * 1000;
+    const sessions = this.getSessions();
+
+    const updates = sessions
+      .map(session => {
+        const startMs = new Date(session.start).getTime();
+        const endMs = new Date(session.end).getTime();
+
+        if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || session.duration <= 0) {
+          return null;
+        }
+
+        const expectedStartMs = endMs - session.duration * 1000;
+        const driftMs = Math.abs(startMs - expectedStartMs);
+
+        if (driftMs <= driftThresholdMs) {
+          return null;
+        }
+
+        return {
+          id: session.id,
+          start: new Date(expectedStartMs).toISOString(),
+        };
+      })
+      .filter((update): update is { id: string; start: string } => update !== null);
+
+    if (updates.length === 0) {
+      return 0;
+    }
+
+    const updateById = new Map(updates.map(update => [update.id, update.start]));
+    const normalizedSessions = sessions.map(session => {
+      const normalizedStart = updateById.get(session.id);
+      return normalizedStart ? { ...session, start: normalizedStart } : session;
+    });
+    this._sessions$.next(normalizedSessions);
+
+    try {
+      await Promise.all(
+        updates.map(update => this.supabase.updateSession(update.id, { start: update.start }))
+      );
+      console.log('Storage: Normalized session timestamps:', updates.length);
+      return updates.length;
+    } catch (error) {
+      console.error('Failed to normalize session timestamps:', error);
+      await this.loadSessions();
+      throw error;
     }
   }
 

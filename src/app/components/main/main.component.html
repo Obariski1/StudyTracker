@@ -140,8 +140,8 @@
     </div>
 
     <!-- Log Session Modal -->
-    <div class="modal-overlay modal-overlay-form" *ngIf="showSessionModal"></div>
-    <div class="modal modal-form" *ngIf="showSessionModal">
+    <div class="modal-overlay modal-overlay-form active-form-overlay" *ngIf="showSessionModal" (click)="closeSessionModal()"></div>
+    <div class="modal modal-form modal-form-floating" *ngIf="showSessionModal">
       <div class="modal-header">
         <h2 class="modal-title">Sitzung nachtragen</h2>
       </div>
@@ -197,6 +197,68 @@
         <div style="display: flex; gap: 10px;">
           <button type="button" class="btn btn-add" (click)="logSession()" style="flex: 1;">Sitzung eintragen</button>
           <button type="button" class="btn btn-cancel" (click)="closeSessionModal()" style="flex: 1;">Abbrechen</button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Edit Session Modal -->
+    <div class="modal-overlay modal-overlay-form active-form-overlay" *ngIf="showEditSessionModal" (click)="closeEditSessionModal()"></div>
+    <div class="modal modal-form modal-form-floating" *ngIf="showEditSessionModal">
+      <div class="modal-header">
+        <h2 class="modal-title">Sitzung bearbeiten</h2>
+      </div>
+
+      <form style="padding: 20px;">
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Datum</label>
+          <input
+            class="form-control"
+            type="date"
+            [(ngModel)]="editingSessionDate"
+            name="editingSessionDate"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Start-Uhrzeit</label>
+          <input
+            class="form-control"
+            type="time"
+            [(ngModel)]="editingSessionStartTime"
+            name="editingStartTime"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">End-Uhrzeit</label>
+          <input
+            class="form-control"
+            type="time"
+            [(ngModel)]="editingSessionEndTime"
+            name="editingEndTime"
+            required>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Themen</label>
+          <select class="form-control" [(ngModel)]="editingSessionTopicId" name="editingTopicId">
+            <option value=""></option>
+            <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+
+        <div style="margin-bottom: 16px;">
+          <label class="form-label">Notiz </label>
+          <textarea
+            class="form-control note-input"
+            [(ngModel)]="editingSessionNote"
+            name="editingNote"
+            placeholder=""></textarea>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn btn-add" (click)="saveSessionEdit()" style="flex: 1;">Speichern</button>
+          <button type="button" class="btn btn-cancel" (click)="closeEditSessionModal()" style="flex: 1;">Abbrechen</button>
         </div>
       </form>
     </div>
@@ -257,68 +319,6 @@
       </div>
     </div>
 
-    <!-- Edit Session Modal -->
-    <div class="modal-overlay modal-overlay-form" *ngIf="showEditSessionModal"></div>
-    <div class="modal modal-form" *ngIf="showEditSessionModal">
-      <div class="modal-header">
-        <h2 class="modal-title">Sitzung bearbeiten</h2>
-      </div>
-
-      <form style="padding: 20px;">
-        <div style="margin-bottom: 16px;">
-          <label class="form-label">Datum</label>
-          <input
-            class="form-control"
-            type="date"
-            [(ngModel)]="editingSessionDate"
-            name="editingSessionDate"
-            required>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <label class="form-label">Start-Uhrzeit</label>
-          <input
-            class="form-control"
-            type="time"
-            [(ngModel)]="editingSessionStartTime"
-            name="editingStartTime"
-            required>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <label class="form-label">End-Uhrzeit</label>
-          <input
-            class="form-control"
-            type="time"
-            [(ngModel)]="editingSessionEndTime"
-            name="editingEndTime"
-            required>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <label class="form-label">Themen</label>
-          <select class="form-control" [(ngModel)]="editingSessionTopicId" name="editingTopicId">
-            <option value=""></option>
-            <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
-          </select>
-        </div>
-
-        <div style="margin-bottom: 16px;">
-          <label class="form-label">Notiz </label>
-          <textarea
-            class="form-control note-input"
-            [(ngModel)]="editingSessionNote"
-            name="editingNote"
-            placeholder=""></textarea>
-        </div>
-
-        <div style="display: flex; gap: 10px;">
-          <button type="button" class="btn btn-add" (click)="saveSessionEdit()" style="flex: 1;">Speichern</button>
-          <button type="button" class="btn btn-cancel" (click)="closeEditSessionModal()" style="flex: 1;">Abbrechen</button>
-        </div>
-      </form>
-    </div>
-
   </div>
 
   <!-- ── RIGHT: Overview ── -->
@@ -367,7 +367,7 @@
         <div class="session-info">
           <div class="session-name">{{ topicName(s.topicId) }}</div>
           <div class="session-meta">
-            {{ sessionTime(s.start) }} - {{ sessionTime(s.end) }}
+            {{ sessionDate(s.start) }} · {{ sessionStartTime(s) }} - {{ sessionTime(s.end) }}
             <span *ngIf="s.note"> · {{ s.note }}</span>
           </div>
         </div>

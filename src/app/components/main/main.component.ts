@@ -288,6 +288,25 @@ export class MainComponent implements OnInit, OnDestroy {
     return new Date(iso).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
   }
 
+  sessionStartTime(session: StudySession): string {
+    const startMs = new Date(session.start).getTime();
+    const endMs = new Date(session.end).getTime();
+
+    if (!Number.isFinite(startMs) || !Number.isFinite(endMs) || session.duration <= 0) {
+      return this.sessionTime(session.start);
+    }
+
+    const expectedStartMs = endMs - session.duration * 1000;
+    const driftMs = Math.abs(startMs - expectedStartMs);
+
+    // If stored start/end are inconsistent, derive start from end - duration.
+    if (driftMs > 2 * 60 * 1000) {
+      return this.sessionTime(new Date(expectedStartMs).toISOString());
+    }
+
+    return this.sessionTime(session.start);
+  }
+
   // ── Stats ──────────────────────────────────────────────────────────
   private refreshStats(): void {
     const sessions = this.storage.getSessions();
