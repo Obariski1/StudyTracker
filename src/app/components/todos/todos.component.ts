@@ -26,7 +26,7 @@ import { Topic } from '../../models/topic.model';
             Keine aktiven Todos!
           </div>
 
-          <div *ngFor="let todo of getIncompleteTodos((todos$ | async) || [])" class="todo-item" [class.completed]="todo.completed" (click)="editTodo(todo)">
+          <div *ngFor="let todo of getIncompleteTodos((todos$ | async) || [])" class="todo-item" [class.completed]="todo.completed" [class.overdue]="isOverdue(todo)" (click)="editTodo(todo)">
             <input 
               type="checkbox" 
               [checked]="todo.completed"
@@ -37,7 +37,8 @@ import { Topic } from '../../models/topic.model';
             <div class="todo-content">
               <div class="todo-title">{{ todo.title }}</div>
               <div class="todo-meta">
-                <span class="todo-date">📅 {{ formatDate(todo.dueDate) }}</span>
+                <span class="todo-date" [class.overdue]="isOverdue(todo)">📅 {{ formatDate(todo.dueDate) }}</span>
+                <span class="todo-overdue" *ngIf="isOverdue(todo)">⚠ Fällig</span>
                 <span *ngIf="todo.topicId" class="todo-topic" [style.background]="getTopicColor(todo.topicId)">
                   {{ getTopicName(todo.topicId) }}
                 </span>
@@ -366,6 +367,16 @@ import { Topic } from '../../models/topic.model';
       color: var(--muted);
     }
 
+    .todo-item.overdue {
+      border-color: var(--accent3);
+      background: rgba(249, 115, 22, 0.08);
+    }
+
+    .todo-item.overdue:hover {
+      border-color: var(--accent3);
+      background: rgba(249, 115, 22, 0.12);
+    }
+
     .todo-checkbox {
       width: 20px;
       height: 20px;
@@ -431,6 +442,22 @@ import { Topic } from '../../models/topic.model';
       font-size: 11px;
       color: var(--muted);
       font-family: 'DM Mono', monospace;
+    }
+
+    .todo-date.overdue {
+      color: var(--accent3);
+      font-weight: 700;
+    }
+
+    .todo-overdue {
+      font-size: 10px;
+      font-weight: 700;
+      color: #fff;
+      background: var(--accent3);
+      padding: 2px 8px;
+      border-radius: 999px;
+      letter-spacing: .3px;
+      text-transform: uppercase;
     }
 
     .todo-topic {
@@ -663,6 +690,11 @@ export class TodosComponent implements OnInit {
     } catch (error) {
       console.error('Error updating todo:', error);
     }
+  }
+
+  isOverdue(todo: Todo): boolean {
+    if (todo.completed || !todo.dueDate) return false;
+    return todo.dueDate < this.getTodayDate();
   }
 
   async deleteTodo(id: string) {

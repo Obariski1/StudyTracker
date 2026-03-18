@@ -48,9 +48,10 @@
         </ng-container>
         <ng-container *ngFor="let t of day.todos.slice(0, 1)">
           <div class="day-event"
+            [class.day-event-overdue]="isTodoOverdue(t)"
             [style.background]="topicColor(t.topicId) + '1a'"
             [style.color]="topicColor(t.topicId)">
-            Todo · {{ t.title }}
+            {{ isTodoOverdue(t) ? '⚠ Todo' : 'Todo' }} · {{ t.title }}
           </div>
         </ng-container>
         <div class="day-more" *ngIf="day.sessions.length + day.todos.length > 2">
@@ -69,23 +70,24 @@
     </div>
 
     <div class="session-panel-title" *ngIf="selectedDay?.todos?.length">Todos</div>
-    <div class="session-item" *ngFor="let t of selectedDay?.todos">
+    <div class="session-item" *ngFor="let t of selectedDay?.todos" [class.session-item-overdue]="isTodoOverdue(t)" (click)="editTodo(t)" style="cursor: pointer;">
       <div class="session-color-bar" [style.background]="topicColor(t.topicId)"></div>
       <div class="session-item-info">
         <div class="session-item-topic">{{ t.title }}</div>
-        <div class="session-item-time">
+        <div class="session-item-time" [class.overdue]="isTodoOverdue(t)">
           Fällig am {{ t.dueDate }}
+          <span class="todo-overdue-chip" *ngIf="isTodoOverdue(t)"> · Fällig</span>
           <span *ngIf="t.topicId"> · {{ topicName(t.topicId) }}</span>
         </div>
         <div class="session-item-note" *ngIf="t.description">{{ t.description }}</div>
       </div>
-      <div class="session-item-dur">{{ t.completed ? 'Erledigt' : 'Offen' }}</div>
-      <button class="session-delete" (click)="deleteTodo(t.id)">✕</button>
+      <div class="session-item-dur">{{ t.completed ? 'Erledigt' : (isTodoOverdue(t) ? 'Fällig' : 'Offen') }}</div>
+      <button class="session-delete" (click)="deleteTodo(t.id); $event.stopPropagation()">✕</button>
     </div>
 
     <div class="session-panel-title" *ngIf="selectedDay?.sessions?.length">Sitzungen</div>
 
-    <div class="session-item" *ngFor="let s of selectedDay?.sessions">
+    <div class="session-item" *ngFor="let s of selectedDay?.sessions" (click)="editSession(s)" style="cursor: pointer;">
       <div class="session-color-bar" [style.background]="topicColor(s.topicId)"></div>
       <div class="session-item-info">
         <div class="session-item-topic">{{ topicName(s.topicId) }}</div>
@@ -93,8 +95,96 @@
         <div class="session-item-note" *ngIf="s.note">{{ s.note }}</div>
       </div>
       <div class="session-item-dur">{{ formatHM(s.duration) }}</div>
-      <button class="session-delete" (click)="deleteSession(s.id)">✕</button>
+      <button class="session-delete" (click)="deleteSession(s.id); $event.stopPropagation()">✕</button>
     </div>
+  </div>
+
+  <!-- Edit Todo Modal -->
+  <div class="modal-overlay modal-overlay-form active-form-overlay" *ngIf="showEditTodoModal" (click)="closeEditTodoModal()"></div>
+  <div class="modal modal-form modal-form-floating" *ngIf="showEditTodoModal">
+    <div class="modal-header">
+      <h2 class="modal-title">Todo bearbeiten</h2>
+    </div>
+
+    <form style="padding: 20px;">
+      <div style="margin-bottom: 16px;">
+        <label class="form-label">Titel</label>
+        <input class="form-control" [(ngModel)]="editingTodoTitle" name="editingTodoTitle" required>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label class="form-label">Beschreibung</label>
+        <textarea class="form-control note-input" [(ngModel)]="editingTodoDescription" name="editingTodoDescription"></textarea>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div>
+          <label class="form-label">Fälligkeitsdatum</label>
+          <input class="form-control" type="date" [(ngModel)]="editingTodoDueDate" name="editingTodoDueDate" required>
+        </div>
+        <div>
+          <label class="form-label">Themen</label>
+          <select class="form-control" [(ngModel)]="editingTodoTopicId" name="editingTodoTopicId">
+            <option value=""></option>
+            <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px; display: flex; align-items: center; gap: 10px;">
+        <input type="checkbox" [(ngModel)]="editingTodoCompleted" name="editingTodoCompleted" id="editingTodoCompleted" style="width: 18px; height: 18px;">
+        <label class="form-label" for="editingTodoCompleted" style="margin-bottom: 0;">Erledigt</label>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn btn-add" (click)="saveTodoEdit()" style="flex: 1;">Speichern</button>
+        <button type="button" class="btn btn-cancel" (click)="closeEditTodoModal()" style="flex: 1;">Abbrechen</button>
+      </div>
+    </form>
+  </div>
+
+  <!-- Edit Session Modal -->
+  <div class="modal-overlay modal-overlay-form active-form-overlay" *ngIf="showEditSessionModal" (click)="closeEditSessionModal()"></div>
+  <div class="modal modal-form modal-form-floating" *ngIf="showEditSessionModal">
+    <div class="modal-header">
+      <h2 class="modal-title">Sitzung bearbeiten</h2>
+    </div>
+
+    <form style="padding: 20px;">
+      <div style="margin-bottom: 16px;">
+        <label class="form-label">Datum</label>
+        <input class="form-control" type="date" [(ngModel)]="editingSessionDate" name="editingSessionDate" required>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+        <div>
+          <label class="form-label">Start-Uhrzeit</label>
+          <input class="form-control" type="time" [(ngModel)]="editingSessionStartTime" name="editingSessionStartTime" required>
+        </div>
+        <div>
+          <label class="form-label">End-Uhrzeit</label>
+          <input class="form-control" type="time" [(ngModel)]="editingSessionEndTime" name="editingSessionEndTime" required>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label class="form-label">Themen</label>
+        <select class="form-control" [(ngModel)]="editingSessionTopicId" name="editingSessionTopicId">
+          <option value=""></option>
+          <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
+        </select>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label class="form-label">Notiz</label>
+        <textarea class="form-control note-input" [(ngModel)]="editingSessionNote" name="editingSessionNote"></textarea>
+      </div>
+
+      <div style="display: flex; gap: 10px;">
+        <button type="button" class="btn btn-add" (click)="saveSessionEdit()" style="flex: 1;">Speichern</button>
+        <button type="button" class="btn btn-cancel" (click)="closeEditSessionModal()" style="flex: 1;">Abbrechen</button>
+      </div>
+    </form>
   </div>
 
   <!-- Delete Confirmation Modal -->

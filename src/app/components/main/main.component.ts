@@ -10,7 +10,7 @@ import { Topic } from '../../models/topic.model';
 import { StudySession } from '../../models/session.model';
 import { Todo } from '../../models/todo.model';
 
-interface DayBar { label: string; secs: number; isToday: boolean; }
+interface DayBar { label: string; secs: number; isToday: boolean; dateIso: string; }
 
 @Component({
   selector: 'app-main',
@@ -19,6 +19,11 @@ interface DayBar { label: string; secs: number; isToday: boolean; }
   templateUrl: './main.component.html',
 })
 export class MainComponent implements OnInit, OnDestroy {
+  private readonly fullscreenBodyClass = 'timer-fullscreen-active';
+  private readonly appLocale = 'de-CH';
+  private readonly appTimeZone = 'Europe/Berlin';
+  private readonly sessionDriftToleranceMs = 2 * 60 * 1000;
+
   // Timer state
   seconds = 0;
   running = false;
@@ -54,6 +59,8 @@ export class MainComponent implements OnInit, OnDestroy {
   todaysTodos: Todo[] = [];
   todaysCompletedTodos: Todo[] = [];
   weekBars: DayBar[] = [];
+  selectedWeekDayIso: string | null = null;
+  displayedSessions: StudySession[] = [];
   statTotal = '0m';
   statSessions = 0;
   statAverage = '0m';
@@ -94,11 +101,11 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   private getTodayDate(): string {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    return new Date().toLocaleDateString('sv-SE', { timeZone: this.appTimeZone });
   }
 
   ngOnDestroy(): void {
+    this.setTimerFullscreenMode(false);
     this.subs.unsubscribe();
   }
 
@@ -107,7 +114,24 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   toggleTimerMinimized(): void {
-    this.timerFullscreen = !this.timerFullscreen;
+    if (this.timerFullscreen) {
+      this.setTimerFullscreenMode(false);
+      return;
+    }
+
+    if (this.running) {
+      this.setTimerFullscreenMode(true);
+    }
+  }
+
+  private setTimerFullscreenMode(enabled: boolean): void {
+    this.timerFullscreen = enabled;
+
+    if (enabled) {
+      document.body.classList.add(this.fullscreenBodyClass);
+    } else {
+      document.body.classList.remove(this.fullscreenBodyClass);
+    }
   }
 
   start(): void {
@@ -281,11 +305,20 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   sessionDate(iso: string): string {
-    return new Date(iso).toLocaleDateString('de-CH', { day: '2-digit', month: 'short' });
+    return new Date(iso).toLocaleDateString(this.appLocale, {
+      day: '2-digit',
+      month: 'short',
+      timeZone: this.appTimeZone,
+    });
   }
 
   sessionTime(iso: string): string {
-    return new Date(iso).toLocaleTimeString('de-CH', { hour: '2-digit', minute: '2-digit' });
+    return new Date(iso).toLocaleTimeString(this.appLocale, {
+      hour: '2-digit',
+      minute: '2-digit',
+      hour12: false,
+      timeZone: this.appTimeZone,
+    });
   }
 
   sessionStartTime(session: StudySession): string {
@@ -300,11 +333,34 @@ export class MainComponent implements OnInit, OnDestroy {
     const driftMs = Math.abs(startMs - expectedStartMs);
 
     // If stored start/end are inconsistent, derive start from end - duration.
-    if (driftMs > 2 * 60 * 1000) {
+    if (driftMs > this.sessionDriftToleranceMs) {
       return this.sessionTime(new Date(expectedStartMs).toISOString());
     }
 
     return this.sessionTime(session.start);
+  }
+
+  get sessionsCardTitle(): string {
+    if (!this.selectedWeekDayIso) {
+      return 'Letzte Sitzungen';
+    }
+
+    const selectedBar = this.weekBars.find(bar => bar.dateIso === this.selectedWeekDayIso);
+    return selectedBar ? `Sitzungen · ${selectedBar.label}` : 'Sitzungen';
+  }
+
+  toggleWeekDayFilter(bar: DayBar): void {
+    this.selectedWeekDayIso = this.selectedWeekDayIso === bar.dateIso ? null : bar.dateIso;
+    this.refreshDisplayedSessions();
+  }
+
+  clearWeekDayFilter(): void {
+    this.selectedWeekDayIso = null;
+    this.refreshDisplayedSessions();
+  }
+
+  isWeekDaySelected(bar: DayBar): boolean {
+    return this.selectedWeekDayIso === bar.dateIso;
   }
 
   // ── Stats ──────────────────────────────────────────────────────────
@@ -319,7 +375,11 @@ export class MainComponent implements OnInit, OnDestroy {
     const avgSecs = Math.round(weekSecs / 7);
     this.statAverage = this.formatHM(avgSecs);
     this.weekBars = this.buildWeekBars(sessions, weekStart);
-    this.recentSessions = sessions.slice().reverse().slice(0, 5);
+    this.recentSessions = sessions
+      .slice()
+      .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime())
+      .slice(0, 5);
+    this.refreshDisplayedSessions();
   }
 
   private getMonday(): Date {
@@ -336,11 +396,29 @@ export class MainComponent implements OnInit, OnDestroy {
     return labels.map((label, i) => {
       const day = new Date(weekStart);
       day.setDate(weekStart.getDate() + i);
+      const dayIso = this.toDateIsoInTimeZone(day, this.appTimeZone);
       const secs = sessions
-        .filter(s => new Date(s.start).toDateString() === day.toDateString())
+        .filter(s => this.toDateIsoInTimeZone(s.start, this.appTimeZone) === dayIso)
         .reduce((a, s) => a + s.duration, 0);
-      return { label, secs, isToday: i === todayIdx };
+      return { label, secs, isToday: i === todayIdx, dateIso: dayIso };
     });
+  }
+
+  private refreshDisplayedSessions(): void {
+    if (!this.selectedWeekDayIso) {
+      this.displayedSessions = this.recentSessions;
+      return;
+    }
+
+    this.displayedSessions = this.storage
+      .getSessions()
+      .filter(s => this.toDateIsoInTimeZone(s.start, this.appTimeZone) === this.selectedWeekDayIso)
+      .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime());
+  }
+
+  private toDateIsoInTimeZone(value: string | Date, timeZone: string): string {
+    const dateValue = value instanceof Date ? value : new Date(value);
+    return dateValue.toLocaleDateString('sv-SE', { timeZone });
   }
 
   get maxBarSecs(): number {

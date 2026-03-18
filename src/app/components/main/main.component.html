@@ -1,64 +1,12 @@
-<div class="page-main" [style.display]="timerFullscreen ? 'block' : 'flex'">
+<div class="page-main" [class.timer-fullscreen-mode]="timerFullscreen" [style.display]="timerFullscreen ? 'block' : 'flex'">
 
   <!-- ── FULLSCREEN TIMER MODE ── -->
   <div *ngIf="timerFullscreen" style="width: 100%; height: 100vh; display: flex; flex-direction: column; justify-content: center; align-items: center; background: var(--bg); padding: 20px;">
-    <!-- Timer Controls (top) -->
-    <div style="position: absolute; top: 20px; left: 20px; right: 20px;">
-      <div class="mode-toggle" style="margin-bottom: 20px;">
-        <button 
-          class="mode-btn" 
-          [class.active]="mode === 'stopwatch'"
-          (click)="toggleMode()"
-          [disabled]="(timer.running$ | async) ?? false">
-          Stoppuhr
-        </button>
-        <button 
-          class="mode-btn" 
-          [class.active]="mode === 'timer'"
-          (click)="toggleMode()"
-          [disabled]="(timer.running$ | async) ?? false">
-          Timer
-        </button>
-      </div>
-      <div *ngIf="mode === 'timer' && !((timer.running$ | async) ?? false)" style="display: flex; gap: 15px; margin-bottom: 20px; justify-content: center;">
-        <div style="text-align: center;">
-          <label class="form-label" style="font-size: 12px;">Stunden</label>
-          <input type="number" class="form-control" [(ngModel)]="timerHours" min="0" max="99" style="width: 70px; text-align: center;">
-        </div>
-        <div style="text-align: center;">
-          <label class="form-label" style="font-size: 12px;">Minuten</label>
-          <input type="number" class="form-control" [(ngModel)]="timerMinutes" min="0" max="59" style="width: 70px; text-align: center;">
-        </div>
-      </div>
-      <div style="margin-bottom: 20px;">
-        <label class="form-label">Themen</label>
-        <select class="form-control module-select" [class.placeholder]="!selectedTopicId" [(ngModel)]="selectedTopicId" [disabled]="(timer.running$ | async) ?? false" style="margin-bottom: 10px;">
-          <option value=""></option>
-          <option *ngFor="let t of topics" [value]="t.id">{{ t.name }}</option>
-        </select>
-      </div>
-      <div style="margin-bottom: 20px;">
-        <label class="form-label">Notiz</label>
-        <input class="form-control" [(ngModel)]="note" placeholder="" [disabled]="(timer.running$ | async) ?? false">
-      </div>
+    <div class="timer-display" [class.running]="(timer.running$ | async) ?? false" style="font-size: 120px; margin-bottom: 40px;">
+      {{ formatTime((timer.seconds$ | async) ?? 0) }}
     </div>
 
-    <!-- Timer Display (center) -->
-    <div style="text-align: center;">
-      <div class="timer-display" [class.running]="(timer.running$ | async) ?? false" style="font-size: 120px; margin-bottom: 40px;">
-        {{ formatTime((timer.seconds$ | async) ?? 0) }}
-      </div>
-      <div *ngIf="selectedTopicId" style="margin-bottom: 30px; font-size: 20px; color: var(--muted);">
-        {{ topicName(selectedTopicId) }}
-      </div>
-      <div *ngIf="note" style="margin-bottom: 30px; font-size: 16px; color: var(--muted); font-style: italic;">
-        "{{ note }}"
-      </div>
-    </div>
-
-    <!-- Action Buttons (bottom) -->
-    <div class="btn-row" style="justify-content: center; gap: 20px; position: absolute; bottom: 20px;">
-      <button class="btn btn-start" (click)="start()" [disabled]="(timer.running$ | async) ?? false" style="font-size: 18px; padding: 15px 30px;">▶ Start</button>
+    <div class="btn-row" style="justify-content: center; gap: 20px;">
       <button class="btn btn-stop" (click)="stop()" [disabled]="!((timer.running$ | async) ?? false)" style="font-size: 18px; padding: 15px 30px;">■ Stopp</button>
       <button class="btn" (click)="toggleTimerMinimized()" style="font-size: 16px; padding: 12px 24px; background: var(--muted); color: white;">← Zurück</button>
     </div>
@@ -124,9 +72,10 @@
           <button 
             class="btn"
             (click)="toggleTimerMinimized()"
+            [disabled]="!((timer.running$ | async) ?? false)"
             style="background: var(--accent); color: white; margin-left: auto;"
-            [title]="timerFullscreen ? 'Zurück' : 'Vollbild'">
-            {{ timerFullscreen ? '←' : '⛶' }}
+            [title]="((timer.running$ | async) ?? false) ? 'Vollbild' : 'Vollbild nur während laufender Sitzung'">
+            ⛶
           </button>
         </div>
       </div>
@@ -342,7 +291,13 @@
       </div>
 
       <div class="week-bar-area">
-        <div class="week-bar-wrap" *ngFor="let bar of weekBars">
+        <button
+          type="button"
+          class="week-bar-wrap week-bar-button"
+          *ngFor="let bar of weekBars"
+          (click)="toggleWeekDayFilter(bar)"
+          [class.active]="isWeekDaySelected(bar)"
+          [attr.aria-pressed]="isWeekDaySelected(bar)">
           <div class="week-time-label">{{ bar.secs > 0 ? formatHM(bar.secs) : '' }}</div>
           <div class="week-bar"
             [style.height.px]="barHeight(bar.secs)"
@@ -353,16 +308,16 @@
           <div class="week-bar-label" [style.color]="bar.isToday ? 'var(--accent)' : ''">
             {{ bar.label }}
           </div>
-        </div>
+        </button>
       </div>
     </div>
 
     <div class="card">
-      <div class="card-title">Letzte Sitzungen</div>
-      <div *ngIf="(storage.sessions$ | async)?.length === 0" class="no-sessions">
-        Noch keine Lernsitzungen. Beginne zu Lernen! 📖
+      <div class="card-title">{{ sessionsCardTitle }}</div>
+      <div *ngIf="displayedSessions.length === 0" class="no-sessions">
+        {{ selectedWeekDayIso ? 'Keine Sitzungen für diesen Tag.' : 'Noch keine Lernsitzungen. Beginne zu Lernen! 📖' }}
       </div>
-      <div class="recent-session" *ngFor="let s of ((storage.sessions$ | async) || []).slice(0, 5)" (click)="editSession(s.id)" style="cursor: pointer;">
+      <div class="recent-session" *ngFor="let s of displayedSessions" (click)="editSession(s.id)" style="cursor: pointer;">
         <div class="session-dot" [style.background]="topicColor(s.topicId)"></div>
         <div class="session-info">
           <div class="session-name">{{ topicName(s.topicId) }}</div>

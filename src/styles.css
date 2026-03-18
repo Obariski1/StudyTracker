@@ -43,6 +43,14 @@ nav.hidden {
   transform: translateY(-100%);
 }
 
+body.timer-fullscreen-active nav {
+  display: none !important;
+}
+
+body.timer-fullscreen-active main {
+  padding-top: 0 !important;
+}
+
 .logo {
   font-size: 18px;
   font-weight: 800;
@@ -298,6 +306,11 @@ nav.hidden {
   animation: fadeIn .3s ease;
 }
 
+.page-main.timer-fullscreen-mode {
+  padding: 0 !important;
+  height: 100vh;
+}
+
 .normal-mode-wrapper {
   display: flex;
   width: 100%;
@@ -387,6 +400,26 @@ nav.hidden {
   gap: 6px;
   height: 100%;
   justify-content: flex-end;
+}
+.week-bar-button {
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  padding: 6px 4px;
+  transition: border-color .2s ease, background .2s ease;
+}
+.week-bar-button:hover {
+  border-color: var(--border);
+  background: var(--surface2);
+}
+.week-bar-button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.week-bar-button.active {
+  border-color: var(--accent);
+  background: var(--surface2);
 }
 .week-bar-label { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; }
 .week-bar {
@@ -505,16 +538,22 @@ nav.hidden {
   margin-bottom: 2px; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; font-weight: 600;
 }
+.day-event-overdue {
+  border: 1px solid var(--accent3);
+}
 .day-more { font-size: 10px; color: var(--muted); padding: 2px 4px; }
 
 .session-panel { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 20px; }
 .session-panel-title { font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; margin-bottom: 16px; }
 .session-item { display: flex; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.session-item-overdue { background: rgba(249, 115, 22, 0.08); }
 .session-item:last-child { border-bottom: none; }
 .session-color-bar { width: 4px; height: 40px; border-radius: 2px; flex-shrink: 0; }
 .session-item-info { flex: 1; }
 .session-item-topic { font-size: 14px; font-weight: 600; }
 .session-item-time { font-size: 11px; color: var(--muted); font-family: 'DM Mono', monospace; margin-top: 2px; }
+.session-item-time.overdue { color: var(--accent3); font-weight: 700; }
+.todo-overdue-chip { color: var(--accent3); font-weight: 700; }
 .session-item-note { font-size: 12px; color: var(--muted); margin-top: 4px; font-style: italic; }
 .session-item-dur { font-family: 'DM Mono', monospace; font-size: 16px; color: var(--accent); font-weight: 500; }
 .session-delete {
