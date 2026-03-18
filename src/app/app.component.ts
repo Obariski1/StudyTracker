@@ -51,6 +51,12 @@ import { AuthService } from './services/auth.service';
       transform: translateY(-250%);
     }
 
+    @media (max-width: 418px) and (min-height: 838px) {
+      nav.hidden {
+        transform: translateY(-290%);
+      }
+    }
+
     .logo {
       font-size: 20px;
       font-weight: bold;
