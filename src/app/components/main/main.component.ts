@@ -1,4 +1,4 @@
-import { Component, OnInit, OnDestroy } from '@angular/core';
+import { ChangeDetectorRef, Component, OnInit, OnDestroy, ViewRef } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
@@ -71,7 +71,8 @@ export class MainComponent implements OnInit, OnDestroy {
     public timer: TimerService,
     public storage: StorageService,
     public todosService: TodosService,
-    private router: Router
+    private router: Router,
+    private cdr: ChangeDetectorRef
   ) {}
 
   ngOnInit(): void {
@@ -83,21 +84,26 @@ export class MainComponent implements OnInit, OnDestroy {
     this.subs.add(this.storage.topics$.subscribe(t => {
       this.topics = t;
       console.log('Main: Topics updated:', t);
+      this.scheduleViewUpdate();
     }));
     this.subs.add(this.storage.sessions$.subscribe(sessions => {
       console.log('Main: Sessions updated:', sessions);
       this.refreshStats();
+      this.scheduleViewUpdate();
     }));
     this.subs.add(this.todosService.todos$.subscribe(todos => {
       this.updateTodaysTodos(todos);
+      this.scheduleViewUpdate();
     }));
     this.refreshStats();
+    this.scheduleViewUpdate();
   }
 
   private updateTodaysTodos(todos: Todo[]): void {
     const today = this.getTodayDate();
     this.todaysTodos = todos.filter(t => t.dueDate === today && !t.completed);
     this.todaysCompletedTodos = todos.filter(t => t.dueDate === today && t.completed);
+    this.scheduleViewUpdate();
   }
 
   private getTodayDate(): string {
@@ -381,6 +387,16 @@ export class MainComponent implements OnInit, OnDestroy {
       .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime())
       .slice(0, 5);
     this.refreshDisplayedSessions();
+    this.scheduleViewUpdate();
+  }
+
+  private scheduleViewUpdate(): void {
+    queueMicrotask(() => {
+      const viewRef = this.cdr as ViewRef;
+      if (!viewRef.destroyed) {
+        this.cdr.detectChanges();
+      }
+    });
   }
 
   private getMonday(): Date {

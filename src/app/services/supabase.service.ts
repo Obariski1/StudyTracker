@@ -18,6 +18,14 @@ export class SupabaseService {
     return this.supabase;
   }
 
+  private normalizeSessionTimestamp(timestamp: string): string {
+    if (/([zZ]|[+-]\d{2}:\d{2})$/.test(timestamp)) {
+      return timestamp;
+    }
+
+    return `${timestamp}Z`;
+  }
+
   // Topics
   async getTopics() {
     try {
@@ -111,8 +119,8 @@ export class SupabaseService {
         id: s.id,
         topicId: s.topic_id,
         note: s.note,
-        start: s.start,
-        end: s.end,
+        start: this.normalizeSessionTimestamp(s.start),
+        end: this.normalizeSessionTimestamp(s.end),
         duration: s.duration
       })) || [];
     } catch (error) {
@@ -169,7 +177,60 @@ export class SupabaseService {
       .select();
 
     if (error) throw error;
-    return data?.[0];
+    if ((data?.length ?? 0) > 0) {
+      return data?.[0];
+    }
+
+    // Some setups allow INSERT/DELETE but silently return 0 rows for UPDATE.
+    // In that case we replace the row to persist edits instead of losing changes on reload.
+    console.warn('Supabase: Session update returned 0 rows, applying replace fallback for id:', id);
+
+    const { data: existing, error: existingError } = await this.supabase
+      .from('sessions')
+      .select('id, topic_id, note, start, end, duration')
+      .eq('id', id)
+      .maybeSingle();
+
+    if (existingError) throw existingError;
+    if (!existing) {
+      return null;
+    }
+
+    const replacement = {
+      id: existing.id,
+      topic_id: Object.prototype.hasOwnProperty.call(payload, 'topic_id') ? payload['topic_id'] : existing.topic_id,
+      note: Object.prototype.hasOwnProperty.call(payload, 'note') ? payload['note'] : existing.note,
+      start: Object.prototype.hasOwnProperty.call(payload, 'start') ? payload['start'] : existing.start,
+      end: Object.prototype.hasOwnProperty.call(payload, 'end') ? payload['end'] : existing.end,
+      duration: Object.prototype.hasOwnProperty.call(payload, 'duration') ? payload['duration'] : existing.duration,
+    };
+
+    const { error: deleteError } = await this.supabase
+      .from('sessions')
+      .delete()
+      .eq('id', id);
+
+    if (deleteError) throw deleteError;
+
+    const { data: inserted, error: insertError } = await this.supabase
+      .from('sessions')
+      .insert([replacement])
+      .select();
+
+    if (insertError) {
+      // Attempt to restore the original row if replace fails after delete.
+      const { error: restoreError } = await this.supabase
+        .from('sessions')
+        .insert([existing]);
+
+      if (restoreError) {
+        console.error('Supabase: Failed to restore session after replace fallback error:', restoreError);
+      }
+
+      throw insertError;
+    }
+
+    return inserted?.[0];
   }
 
   async deleteSession(id: string) {

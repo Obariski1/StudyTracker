@@ -1,10 +1,12 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { SupabaseService } from './supabase.service';
 import { Todo } from '../models/todo.model';
 
 @Injectable({ providedIn: 'root' })
 export class TodosService {
+  private readonly ngZone = inject(NgZone);
+
   todos$ = new BehaviorSubject<Todo[]>([]);
   editTodo$ = new BehaviorSubject<Todo | null>(null);
 
@@ -12,10 +14,19 @@ export class TodosService {
     this.loadTodos();
   }
 
+  private runInAngularZone(work: () => void): void {
+    if (NgZone.isInAngularZone()) {
+      work();
+      return;
+    }
+
+    this.ngZone.run(work);
+  }
+
   async loadTodos() {
     try {
       const todos = await this.supabase.getTodos();
-      this.todos$.next(todos);
+      this.runInAngularZone(() => this.todos$.next(todos));
     } catch (error) {
       console.error('Error loading todos:', error);
     }
@@ -31,7 +42,7 @@ export class TodosService {
       });
       if (todo) {
         const current = this.todos$.value;
-        this.todos$.next([...current, todo].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime()));
+        this.runInAngularZone(() => this.todos$.next([...current, todo].sort((a, b) => new Date(a.dueDate).getTime() - new Date(b.dueDate).getTime())));
       }
       return todo;
     } catch (error) {
@@ -50,7 +61,7 @@ export class TodosService {
           await this.loadTodos();
           return;
         }
-        this.todos$.next(current.map(t => t.id === id ? updated : t));
+        this.runInAngularZone(() => this.todos$.next(current.map(t => t.id === id ? updated : t)));
       }
     } catch (error) {
       console.error('Error updating todo:', error);
@@ -62,7 +73,7 @@ export class TodosService {
     try {
       await this.supabase.deleteTodo(id);
       const current = this.todos$.value;
-      this.todos$.next(current.filter(t => t.id !== id));
+      this.runInAngularZone(() => this.todos$.next(current.filter(t => t.id !== id)));
     } catch (error) {
       console.error('Error deleting todo:', error);
       throw error;
@@ -80,10 +91,10 @@ export class TodosService {
   }
 
   setEditTodo(todo: Todo) {
-    this.editTodo$.next(todo);
+    this.runInAngularZone(() => this.editTodo$.next(todo));
   }
 
   clearEditTodo() {
-    this.editTodo$.next(null);
+    this.runInAngularZone(() => this.editTodo$.next(null));
   }
 }

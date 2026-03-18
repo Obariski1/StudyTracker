@@ -1,4 +1,4 @@
-import { Injectable } from '@angular/core';
+import { Injectable, NgZone, inject } from '@angular/core';
 import { BehaviorSubject } from 'rxjs';
 import { Topic } from '../models/topic.model';
 import { StudySession } from '../models/session.model';
@@ -6,6 +6,8 @@ import { SupabaseService } from './supabase.service';
 
 @Injectable({ providedIn: 'root' })
 export class StorageService {
+  private readonly ngZone = inject(NgZone);
+
   // Reactive streams so components auto-update
   private _topics$ = new BehaviorSubject<Topic[]>([]);
   private _sessions$ = new BehaviorSubject<StudySession[]>([]);
@@ -19,15 +21,24 @@ export class StorageService {
     this.initializeData();
   }
 
+  private runInAngularZone(work: () => void): void {
+    if (NgZone.isInAngularZone()) {
+      work();
+      return;
+    }
+
+    this.ngZone.run(work);
+  }
+
   private async initializeData() {
-    this._isLoading$.next(true);
+    this.runInAngularZone(() => this._isLoading$.next(true));
     try {
       await this.loadTopics();
       await this.loadSessions();
     } catch (error) {
       console.error('Failed to initialize data:', error);
     } finally {
-      this._isLoading$.next(false);
+      this.runInAngularZone(() => this._isLoading$.next(false));
     }
   }
 
@@ -36,10 +47,10 @@ export class StorageService {
     try {
       const data = await this.supabase.getTopics();
       console.log('Storage: Topics loaded successfully:', data);
-      this._topics$.next(data || []);
+      this.runInAngularZone(() => this._topics$.next(data || []));
     } catch (error) {
       console.error('Failed to load topics:', error);
-      this._topics$.next([]);
+      this.runInAngularZone(() => this._topics$.next([]));
     }
   }
 
@@ -59,7 +70,7 @@ export class StorageService {
       } else {
         list[idx] = topic;
       }
-      this._topics$.next([...list]);
+      this.runInAngularZone(() => this._topics$.next([...list]));
       console.log('Storage: Topic saved locally:', topic);
       
       // Update database in background
@@ -80,7 +91,7 @@ export class StorageService {
     try {
       // Optimistic update: remove from local state immediately
       const updatedTopics = this.getTopics().filter(t => t.id !== id);
-      this._topics$.next(updatedTopics);
+      this.runInAngularZone(() => this._topics$.next(updatedTopics));
       console.log('Storage: Topic deleted locally:', id);
       
       // Update database in background
@@ -90,7 +101,7 @@ export class StorageService {
       const sessions = this.getSessions().map(s =>
         s.topicId === id ? { ...s, topicId: null } : s
       );
-      this._sessions$.next(sessions);
+      this.runInAngularZone(() => this._sessions$.next(sessions));
       
       console.log('Storage: Topic deleted from database:', id);
     } catch (error) {
@@ -106,10 +117,10 @@ export class StorageService {
     try {
       const data = await this.supabase.getSessions();
       console.log('Storage: Sessions loaded successfully:', data);
-      this._sessions$.next(data || []);
+      this.runInAngularZone(() => this._sessions$.next(data || []));
     } catch (error) {
       console.error('Failed to load sessions:', error);
-      this._sessions$.next([]);
+      this.runInAngularZone(() => this._sessions$.next([]));
     }
   }
 
@@ -123,7 +134,7 @@ export class StorageService {
       const list = this.getSessions();
       console.log('Storage: Before saving, sessions count:', list.length);
       list.unshift(session);  // Add to front (most recent)
-      this._sessions$.next([...list]);
+      this.runInAngularZone(() => this._sessions$.next([...list]));
       console.log('Storage: Session saved locally, new count:', list.length, session);
       
       // Update database in background
@@ -144,12 +155,16 @@ export class StorageService {
       const index = list.findIndex(s => s.id === id);
       if (index !== -1) {
         list[index] = { ...list[index], ...updates };
-        this._sessions$.next([...list]);
+        this.runInAngularZone(() => this._sessions$.next([...list]));
         console.log('Storage: Session updated locally:', id);
       }
       
       // Update database in background
-      await this.supabase.updateSession(id, updates);
+      const persistedSession = await this.supabase.updateSession(id, updates);
+      if (!persistedSession) {
+        console.warn('Storage: Session update returned no persisted row, reloading sessions:', id);
+        await this.loadSessions();
+      }
       console.log('Storage: Session updated in database:', id);
     } catch (error) {
       console.error('Failed to update session:', error);
@@ -194,7 +209,7 @@ export class StorageService {
       const normalizedStart = updateById.get(session.id);
       return normalizedStart ? { ...session, start: normalizedStart } : session;
     });
-    this._sessions$.next(normalizedSessions);
+    this.runInAngularZone(() => this._sessions$.next(normalizedSessions));
 
     try {
       await Promise.all(
@@ -213,7 +228,7 @@ export class StorageService {
     try {
       // Optimistic update: remove from local state immediately
       const updatedSessions = this.getSessions().filter(s => s.id !== id);
-      this._sessions$.next(updatedSessions);
+      this.runInAngularZone(() => this._sessions$.next(updatedSessions));
       console.log('Storage: Session deleted locally:', id);
       
       // Update database in background
