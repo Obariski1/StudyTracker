@@ -39,7 +39,7 @@
       </div>
       <div style="margin-bottom: 20px;">
         <label class="form-label">Notiz</label>
-        <input class="form-control" [(ngModel)]="note" placeholder="Worauf studierst du gerade?" [disabled]="(timer.running$ | async) ?? false">
+        <input class="form-control" [(ngModel)]="note" placeholder="" [disabled]="(timer.running$ | async) ?? false">
       </div>
     </div>
 
