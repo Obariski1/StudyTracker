@@ -53,7 +53,47 @@ import { AuthService } from './services/auth.service';
 
     @media (max-width: 418px) and (min-height: 838px) {
       nav.hidden {
-        transform: translateY(-290%);
+        transform: translateY(-300%);
+      }
+    }
+
+    @media (max-width: 832px) and (min-height: 838px) {
+      nav.hidden {
+        transform: translateY(-300%);
+      }
+
+      nav {
+        flex-direction: column;
+        align-items: stretch;
+        padding: 12px 16px;
+        gap: 12px;
+      }
+
+      .logo {
+        text-align: center;
+        font-size: 18px;
+      }
+
+      .nav-right {
+        display: flex;
+        width: 100%;
+        margin-left: 0;
+        justify-content: center;
+        flex-wrap: wrap;
+        gap: 8px;
+      }
+
+      .nav-btn,
+      .logout-btn {
+        flex: 1;
+        min-width: 120px;
+        padding: 8px 12px;
+        font-size: 12px;
+        text-align: center;
+      }
+
+      main {
+        padding-top: 92px;
       }
     }
 

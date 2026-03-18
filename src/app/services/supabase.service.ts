@@ -218,13 +218,22 @@ export class SupabaseService {
 
   async getCurrentUser() {
     try {
+      // Prefer persisted session from local storage to keep users logged in on reload.
+      const { data: sessionData, error: sessionError } = await this.supabase.auth.getSession();
+      if (sessionError) {
+        console.error('Supabase Error (getSession):', sessionError);
+      }
+
+      if (sessionData.session?.user) {
+        return sessionData.session.user;
+      }
+
       const { data, error } = await this.supabase.auth.getUser();
-      
       if (error) {
         console.error('Supabase Error (getCurrentUser):', error);
         return null;
       }
-      
+
       return data.user;
     } catch (error) {
       console.error('Supabase Exception (getCurrentUser):', error);
