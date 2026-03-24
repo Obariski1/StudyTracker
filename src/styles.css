@@ -385,6 +385,50 @@ body.timer-fullscreen-active main {
 }
 .stat-lbl { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
+.week-overview-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.week-nav {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.week-nav-label {
+  min-width: 120px;
+  text-align: center;
+  font-size: 11px;
+  color: var(--muted);
+  font-family: 'DM Mono', monospace;
+}
+
+.week-nav-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  cursor: pointer;
+  line-height: 1;
+  transition: border-color .2s ease, color .2s ease;
+}
+
+.week-nav-btn:hover:not(:disabled) {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.week-nav-btn:disabled {
+  opacity: .4;
+  cursor: not-allowed;
+}
+
 /* Week bars */
 .week-bar-area {
   display: flex;
@@ -495,9 +539,10 @@ body.timer-fullscreen-active main {
   overflow: hidden;
 }
 .cal-weekdays { display: grid; grid-template-columns: repeat(7, 1fr); border-bottom: 1px solid var(--border); }
-.cal-weekday { padding: 10px; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
+.cal-weekday { min-width: 0; padding: 10px; text-align: center; font-size: 11px; font-weight: 700; letter-spacing: 1px; color: var(--muted); text-transform: uppercase; }
 .cal-days { display: grid; grid-template-columns: repeat(7, 1fr); }
 .cal-day {
+  min-width: 0;
   min-height: 90px; padding: 8px;
   border-right: 1px solid var(--border);
   border-bottom: 1px solid var(--border);
@@ -523,6 +568,10 @@ body.timer-fullscreen-active main {
   color: var(--muted);
   line-height: 1;
 }
+.day-count-number,
+.day-count-label {
+  display: inline-block;
+}
 .day-count-todo {
   background: rgba(123,110,246,.12);
   border-color: rgba(123,110,246,.45);
@@ -534,10 +583,12 @@ body.timer-fullscreen-active main {
   color: var(--accent);
 }
 .day-event {
+  min-width: 0;
   font-size: 10px; padding: 2px 6px; border-radius: 4px;
   margin-bottom: 2px; white-space: nowrap; overflow: hidden;
   text-overflow: ellipsis; font-weight: 600;
 }
+.day-event-icon { display: none; }
 .day-event-overdue {
   border: 1px solid var(--accent3);
 }
@@ -803,6 +854,53 @@ body.timer-fullscreen-active main {
   }
 }
 
+/* Compact calendar day cells on small/medium screens */
+@media (max-width: 820px) {
+  .cal-day .day-top {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+  }
+
+  .cal-day .day-counts {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+    margin-top: 1px;
+  }
+
+  .day-event {
+    display: none;
+  }
+
+  .day-more {
+    display: none;
+  }
+
+  .day-count {
+    display: inline-flex;
+    align-items: center;
+    gap: 1px;
+    min-width: 22px;
+    padding: 2px 4px;
+    text-align: center;
+  }
+
+  .day-count-number {
+    display: inline-block;
+    order: 2;
+    font-size: 10px;
+    line-height: 1;
+  }
+
+  .day-count-label {
+    order: 1;
+    font-size: 10px;
+    line-height: 1;
+  }
+}
+
 /* Extra small screens - stack navbar vertically */
 @media (max-width: 640px) {
   .modal-form.modal-form-floating {
@@ -890,6 +988,16 @@ body.timer-fullscreen-active main {
   .timer-display {
     font-size: 36px;
   }
+
+  .week-overview-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .week-nav-label {
+    min-width: 0;
+  }
+
 }
 
 /* ── TODOS ────────────────────────────────────────────────────────── */

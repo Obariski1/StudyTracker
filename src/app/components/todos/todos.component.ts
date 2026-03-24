@@ -566,6 +566,8 @@ import { Topic } from '../../models/topic.model';
   `]
 })
 export class TodosComponent implements OnInit {
+  private readonly appTimeZone = 'Europe/Berlin';
+
   todos$: Observable<Todo[]>;
   topics$: Observable<Topic[]>;
   showModal = false;
@@ -702,10 +704,13 @@ export class TodosComponent implements OnInit {
   }
 
   formatDate(date: string): string {
-    const d = new Date(date + 'T00:00:00');
+    const d = new Date(date + 'T12:00:00');
     const days = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun', 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-    return `${days[d.getDay()]} ${d.getDate()} ${months[d.getMonth()]}`;
+
+    // JavaScript getDay() starts with Sunday=0; remap to Monday=0.
+    const dayIndex = (d.getDay() + 6) % 7;
+    return `${days[dayIndex]} ${d.getDate()} ${months[d.getMonth()]}`;
   }
 
   getTopicName(topicId: string): string {
@@ -726,7 +731,6 @@ export class TodosComponent implements OnInit {
   }
 
   private getTodayDate(): string {
-    const today = new Date();
-    return today.toISOString().split('T')[0];
+    return new Date().toLocaleDateString('sv-SE', { timeZone: this.appTimeZone });
   }
 }

@@ -59,11 +59,13 @@ export class MainComponent implements OnInit, OnDestroy {
   todaysTodos: Todo[] = [];
   todaysCompletedTodos: Todo[] = [];
   weekBars: DayBar[] = [];
+  selectedWeekOffset = 0;
+  selectedWeekLabel = '';
   selectedWeekDayIso: string | null = null;
   displayedSessions: StudySession[] = [];
   statTotal = '0m';
-  statSessions = 0;
   statAverage = '0m';
+  statWeeklyAverage = '0h 0min';
 
   private subs = new Subscription();
 
@@ -303,6 +305,12 @@ export class MainComponent implements OnInit, OnDestroy {
     return `${h}h ${m}m`;
   }
 
+  formatHMVerbose(secs: number): string {
+    const h = Math.floor(secs / 3600);
+    const m = Math.floor((secs % 3600) / 60);
+    return `${h}h ${m}min`;
+  }
+
   topicColor(id: string | null): string {
     return this.topics.find(t => t.id === id)?.color ?? '#70708a';
   }
@@ -349,7 +357,7 @@ export class MainComponent implements OnInit, OnDestroy {
 
   get sessionsCardTitle(): string {
     if (!this.selectedWeekDayIso) {
-      return 'Letzte Sitzungen';
+      return 'Sitzungen dieser Woche';
     }
 
     const selectedBar = this.weekBars.find(bar => bar.dateIso === this.selectedWeekDayIso);
@@ -359,6 +367,26 @@ export class MainComponent implements OnInit, OnDestroy {
   toggleWeekDayFilter(bar: DayBar): void {
     this.selectedWeekDayIso = this.selectedWeekDayIso === bar.dateIso ? null : bar.dateIso;
     this.refreshDisplayedSessions();
+  }
+
+  previousWeek(): void {
+    this.selectedWeekOffset += 1;
+    this.selectedWeekDayIso = null;
+    this.refreshStats();
+  }
+
+  nextWeek(): void {
+    if (!this.canGoNextWeek) {
+      return;
+    }
+
+    this.selectedWeekOffset -= 1;
+    this.selectedWeekDayIso = null;
+    this.refreshStats();
+  }
+
+  get canGoNextWeek(): boolean {
+    return this.selectedWeekOffset > 0;
   }
 
   clearWeekDayFilter(): void {
@@ -373,16 +401,24 @@ export class MainComponent implements OnInit, OnDestroy {
   // ── Stats ──────────────────────────────────────────────────────────
   private refreshStats(): void {
     const sessions = this.storage.getSessions();
-    const weekStart = this.getMonday();
+    const weekStart = this.getMondayForOffset(this.selectedWeekOffset);
+    const weekEndExclusive = new Date(weekStart);
+    weekEndExclusive.setDate(weekStart.getDate() + 7);
+    const weekStartIso = this.toDateIsoInTimeZone(weekStart, this.appTimeZone);
+    const weekEndExclusiveIso = this.toDateIsoInTimeZone(weekEndExclusive, this.appTimeZone);
 
-    const weekSessions = sessions.filter(s => new Date(s.start) >= weekStart);
+    const weekSessions = sessions.filter(s => {
+      const sessionDayIso = this.toDateIsoInTimeZone(s.start, this.appTimeZone);
+      return sessionDayIso >= weekStartIso && sessionDayIso < weekEndExclusiveIso;
+    });
     const weekSecs = weekSessions.reduce((a, s) => a + s.duration, 0);
     this.statTotal = this.formatHM(weekSecs);
-    this.statSessions = weekSessions.length;
     const avgSecs = Math.round(weekSecs / 7);
     this.statAverage = this.formatHM(avgSecs);
+    this.statWeeklyAverage = this.formatHMVerbose(this.calculateWeeklyAverageSeconds(sessions));
+    this.selectedWeekLabel = this.buildWeekLabel(weekStart);
     this.weekBars = this.buildWeekBars(sessions, weekStart);
-    this.recentSessions = sessions
+    this.recentSessions = weekSessions
       .slice()
       .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime())
       .slice(0, 5);
@@ -399,17 +435,36 @@ export class MainComponent implements OnInit, OnDestroy {
     });
   }
 
-  private getMonday(): Date {
+  private getMondayForOffset(weekOffset: number): Date {
     const now = new Date();
     const d = new Date(now);
     d.setDate(now.getDate() - ((now.getDay() + 6) % 7));
+    d.setDate(d.getDate() - weekOffset * 7);
     d.setHours(0, 0, 0, 0);
     return d;
   }
 
+  private buildWeekLabel(weekStart: Date): string {
+    const weekEnd = new Date(weekStart);
+    weekEnd.setDate(weekStart.getDate() + 6);
+
+    const startLabel = weekStart.toLocaleDateString(this.appLocale, {
+      day: '2-digit',
+      month: '2-digit',
+      timeZone: this.appTimeZone,
+    });
+    const endLabel = weekEnd.toLocaleDateString(this.appLocale, {
+      day: '2-digit',
+      month: '2-digit',
+      timeZone: this.appTimeZone,
+    });
+
+    return `${startLabel} - ${endLabel}`;
+  }
+
   private buildWeekBars(sessions: StudySession[], weekStart: Date): DayBar[] {
     const labels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
-    const todayIdx = (new Date().getDay() + 6) % 7;
+    const todayIso = this.toDateIsoInTimeZone(new Date(), this.appTimeZone);
     return labels.map((label, i) => {
       const day = new Date(weekStart);
       day.setDate(weekStart.getDate() + i);
@@ -417,7 +472,7 @@ export class MainComponent implements OnInit, OnDestroy {
       const secs = sessions
         .filter(s => this.toDateIsoInTimeZone(s.start, this.appTimeZone) === dayIso)
         .reduce((a, s) => a + s.duration, 0);
-      return { label, secs, isToday: i === todayIdx, dateIso: dayIso };
+      return { label, secs, isToday: dayIso === todayIso, dateIso: dayIso };
     });
   }
 
@@ -431,6 +486,33 @@ export class MainComponent implements OnInit, OnDestroy {
       .getSessions()
       .filter(s => this.toDateIsoInTimeZone(s.start, this.appTimeZone) === this.selectedWeekDayIso)
       .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime());
+  }
+
+  private calculateWeeklyAverageSeconds(sessions: StudySession[]): number {
+    if (sessions.length === 0) {
+      return 0;
+    }
+
+    const weeklyTotals = new Map<string, number>();
+
+    for (const session of sessions) {
+      const weekKey = this.getWeekKeyInTimeZone(session.start);
+      weeklyTotals.set(weekKey, (weeklyTotals.get(weekKey) ?? 0) + session.duration);
+    }
+
+    const totals = Array.from(weeklyTotals.values());
+    const totalSeconds = totals.reduce((acc, value) => acc + value, 0);
+    return Math.round(totalSeconds / totals.length);
+  }
+
+  private getWeekKeyInTimeZone(iso: string): string {
+    const localIsoDate = this.toDateIsoInTimeZone(iso, this.appTimeZone);
+    const [year, month, day] = localIsoDate.split('-').map(Number);
+    const date = new Date(Date.UTC(year, month - 1, day));
+    const daysSinceMonday = (date.getUTCDay() + 6) % 7;
+    date.setUTCDate(date.getUTCDate() - daysSinceMonday);
+
+    return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(date.getUTCDate()).padStart(2, '0')}`;
   }
 
   private toDateIsoInTimeZone(value: string | Date, timeZone: string): string {

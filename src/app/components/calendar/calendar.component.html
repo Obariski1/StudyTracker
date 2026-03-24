@@ -35,15 +35,22 @@
         <div class="day-top">
           <div class="day-num">{{ day.date.getDate() }}</div>
           <div class="day-counts" *ngIf="day.todos.length || day.sessions.length">
-            <span class="day-count day-count-todo" *ngIf="day.todos.length">{{ day.todos.length }}T</span>
-            <span class="day-count day-count-session" *ngIf="day.sessions.length">{{ day.sessions.length }}S</span>
+            <span class="day-count day-count-todo" *ngIf="day.todos.length">
+              <span class="day-count-number">{{ day.todos.length }}</span>
+              <span class="day-count-label">T</span>
+            </span>
+            <span class="day-count day-count-session" *ngIf="day.sessions.length">
+              <span class="day-count-number">{{ day.sessions.length }}</span>
+              <span class="day-count-label">S</span>
+            </span>
           </div>
         </div>
         <ng-container *ngFor="let s of day.sessions.slice(0, 1)">
           <div class="day-event"
             [style.background]="topicColor(s.topicId) + '22'"
             [style.color]="topicColor(s.topicId)">
-            {{ topicName(s.topicId) }} · {{ formatHM(s.duration) }}
+            <span class="day-event-icon day-event-icon-session">A</span>
+            <span class="day-event-text">{{ topicName(s.topicId) }} · {{ formatHM(s.duration) }}</span>
           </div>
         </ng-container>
         <ng-container *ngFor="let t of day.todos.slice(0, 1)">
@@ -51,7 +58,8 @@
             [class.day-event-overdue]="isTodoOverdue(t)"
             [style.background]="topicColor(t.topicId) + '1a'"
             [style.color]="topicColor(t.topicId)">
-            {{ isTodoOverdue(t) ? '⚠ Todo' : 'Todo' }} · {{ t.title }}
+            <span class="day-event-icon day-event-icon-todo">{{ isTodoOverdue(t) ? '!' : 'T' }}</span>
+            <span class="day-event-text">{{ isTodoOverdue(t) ? '⚠ Todo' : 'Todo' }} · {{ t.title }}</span>
           </div>
         </ng-container>
         <div class="day-more" *ngIf="day.sessions.length + day.todos.length > 2">

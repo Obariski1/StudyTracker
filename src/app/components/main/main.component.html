@@ -273,7 +273,14 @@
   <!-- ── RIGHT: Overview ── -->
   <div class="main-right">
     <div class="card">
-      <div class="card-title">Diese Woche</div>
+      <div class="week-overview-head">
+        <div class="card-title" style="margin-bottom: 0;">Wochenuebersicht</div>
+        <div class="week-nav">
+          <button type="button" class="week-nav-btn" (click)="previousWeek()" title="Vorherige Woche">‹</button>
+          <div class="week-nav-label">{{ selectedWeekLabel }}</div>
+          <button type="button" class="week-nav-btn" (click)="nextWeek()" [disabled]="!canGoNextWeek" title="Naechste Woche">›</button>
+        </div>
+      </div>
 
       <div class="stat-row">
         <div class="stat-box">
@@ -285,8 +292,8 @@
           <div class="stat-lbl">Durchschnitt/Tag</div>
         </div>
         <div class="stat-box">
-          <div class="stat-val">{{ statSessions }}</div>
-          <div class="stat-lbl">Lernsitzungen</div>
+          <div class="stat-val">{{ statWeeklyAverage }}</div>
+          <div class="stat-lbl">Wochentlicher Durchschnitt</div>
         </div>
       </div>
 
