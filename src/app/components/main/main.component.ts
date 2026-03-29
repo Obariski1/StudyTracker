@@ -422,7 +422,7 @@ export class MainComponent implements OnInit, OnDestroy {
     this.statAverage = this.formatHM(avgSecs);
     const lectureSecs = weekSessions.filter(s => s.topicId !== null && lectureTopicIds.includes(s.topicId)).reduce((a, s) => a + s.duration, 0);
     this.statLectureTotal = this.formatHM(lectureSecs);
-    this.statWeeklyAverage = this.formatHMVerbose(this.calculateWeeklyAverageSeconds(sessions, lectureTopicIds));
+    this.statWeeklyAverage = this.formatHM(weekSecs + lectureSecs);
     this.selectedWeekLabel = this.buildWeekLabel(weekStart);
     this.weekBars = this.buildWeekBars(sessions, weekStart);
     this.recentSessions = weekSessions
@@ -505,17 +505,14 @@ export class MainComponent implements OnInit, OnDestroy {
       .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime());
   }
 
-  private calculateWeeklyAverageSeconds(sessions: StudySession[], lectureTopicIds?: string[]): number {
+  private calculateWeeklyAverageSeconds(sessions: StudySession[]): number {
     if (sessions.length === 0) {
       return 0;
     }
-
-    const lectureIds = lectureTopicIds || [];
-    const learningOnlySessions = sessions.filter(s => s.topicId === null || !lectureIds.includes(s.topicId));
     
     const weeklyTotals = new Map<string, number>();
 
-    for (const session of learningOnlySessions) {
+    for (const session of sessions) {
       const weekKey = this.getWeekKeyInTimeZone(session.start);
       weeklyTotals.set(weekKey, (weeklyTotals.get(weekKey) ?? 0) + session.duration);
     }
