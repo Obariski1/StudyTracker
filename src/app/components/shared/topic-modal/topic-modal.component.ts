@@ -12,32 +12,40 @@ const COLORS = ['#c8f04c','#7b6ef6','#f06060','#60c0f0','#f0a060','#60f0b0','#f0
   imports: [CommonModule, FormsModule],
   template: `
     <div class="modal-backdrop" (click)="onBackdrop($event)">
-      <div class="modal" role="dialog">
-        <div class="modal-title">{{ editTopic ? 'Thema bearbeiten' : 'Thema hinzufügen' }}</div>
-
-        <div class="form-group">
-          <label class="form-label">Name</label>
-          <input class="form-control" [(ngModel)]="name" placeholder="z.B. Mathematik" #nameInput/>
+      <div class="modal topic-modal" role="dialog">
+        <div class="topic-modal-header">
+          <div class="modal-title">{{ editTopic ? 'Thema bearbeiten' : 'Thema hinzufügen' }}</div>
         </div>
-        <div class="form-group">
-          <label class="form-label">Beschreibung</label>
-          <input class="form-control" [(ngModel)]="desc" placeholder="Kurze Beschreibung (optional)" />
-        </div>
-        <div class="form-group">
-          <label class="form-label">Farbe</label>
-          <div class="color-picker-row">
-            <div class="color-swatch"
-              *ngFor="let c of colors"
-              [style.background]="c"
-              [class.selected]="c === selectedColor"
-              (click)="selectedColor = c">
+        <div class="topic-modal-body">
+          <div class="form-group">
+            <label class="form-label">Name</label>
+            <input class="form-control" [(ngModel)]="name" placeholder="z.B. Mathematik" #nameInput/>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Beschreibung</label>
+            <input class="form-control" [(ngModel)]="desc" placeholder="Kurze Beschreibung (optional)" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Farbe</label>
+            <div class="color-picker-row">
+              <div class="color-swatch"
+                *ngFor="let c of colors"
+                [style.background]="c"
+                [class.selected]="c === selectedColor"
+                (click)="selectedColor = c">
+              </div>
             </div>
           </div>
-        </div>
-
-        <div class="modal-actions">
-          <button class="btn-cancel" (click)="close.emit()">Abbrechen</button>
-          <button class="btn-primary" (click)="save()">Speichern</button>
+          <div class="form-group">
+            <label class="topic-checkbox-label">
+              <input type="checkbox" [(ngModel)]="isLectureType" name="isLectureType" />
+              <span>Nicht in Gesamtlernzeit zählen (z.B. Vorlesungen)</span>
+            </label>
+          </div>
+          <div class="modal-actions">
+            <button class="btn-cancel" (click)="close.emit()">Abbrechen</button>
+            <button class="btn-primary" (click)="save()">Speichern</button>
+          </div>
         </div>
       </div>
     </div>
@@ -51,6 +59,7 @@ export class TopicModalComponent implements OnChanges {
   name = '';
   desc = '';
   selectedColor = COLORS[0];
+  isLectureType = false;
   colors = COLORS;
 
   constructor(private storage: StorageService) {}
@@ -60,10 +69,12 @@ export class TopicModalComponent implements OnChanges {
       this.name = this.editTopic.name;
       this.desc = this.editTopic.desc;
       this.selectedColor = this.editTopic.color;
+      this.isLectureType = this.editTopic.isLectureType ?? false;
     } else {
       this.name = '';
       this.desc = '';
       this.selectedColor = COLORS[0];
+      this.isLectureType = false;
     }
   }
 
@@ -74,6 +85,7 @@ export class TopicModalComponent implements OnChanges {
       name: this.name.trim(),
       desc: this.desc.trim(),
       color: this.selectedColor,
+      isLectureType: this.isLectureType,
     });
     this.saved.emit();
     this.close.emit();

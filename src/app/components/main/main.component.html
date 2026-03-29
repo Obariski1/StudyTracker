@@ -288,8 +288,8 @@
           <div class="stat-lbl">Gesamt diese Woche</div>
         </div>
         <div class="stat-box">
-          <div class="stat-val">{{ statAverage }}</div>
-          <div class="stat-lbl">Durchschnitt/Tag</div>
+          <div class="stat-val">{{ statLectureTotal }}</div>
+          <div class="stat-lbl">Vorlesungen diese Woche</div>
         </div>
         <div class="stat-box">
           <div class="stat-val">{{ statWeeklyAverage }}</div>
@@ -305,12 +305,21 @@
           (click)="toggleWeekDayFilter(bar)"
           [class.active]="isWeekDaySelected(bar)"
           [attr.aria-pressed]="isWeekDaySelected(bar)">
-          <div class="week-time-label">{{ bar.secs > 0 ? formatHM(bar.secs) : '' }}</div>
-          <div class="week-bar"
-            [style.height.px]="barHeight(bar.secs)"
-            [style.background]="bar.isToday ? 'var(--accent)' : 'var(--surface2)'"
-            [style.border]="bar.isToday ? 'none' : '1px solid var(--border)'"
-            [title]="formatHM(bar.secs)">
+          <div class="week-time-label">{{ (bar.secsLearning + bar.secsLecture) > 0 ? formatHM(bar.secsLearning + bar.secsLecture) : '' }}</div>
+          <div class="week-bar-stack" [title]="'Lernen: ' + formatHM(bar.secsLearning) + (bar.secsLecture > 0 ? ' | Vorlesung: ' + formatHM(bar.secsLecture) : '')">
+            <!-- Lecture segment (OBEN) -->
+            <div *ngIf="lecturePx(bar) > 0"
+              class="week-bar-segment"
+              [style.height.px]="lecturePx(bar)"
+              [style.background]="bar.isToday ? '#f9a8d4' : '#eeeeee'">
+            </div>
+            <!-- Learning segment (UNTEN) -->
+            <div
+              class="week-bar-segment"
+              [style.height.px]="learningPx(bar)"
+              [style.background]="bar.isToday ? 'var(--accent)' : 'var(--surface2)'"
+              [style.border]="bar.isToday ? 'none' : '1px solid var(--border)'">
+            </div>
           </div>
           <div class="week-bar-label" [style.color]="bar.isToday ? 'var(--accent)' : ''">
             {{ bar.label }}

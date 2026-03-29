@@ -3,4 +3,5 @@ export interface Topic {
   name: string;
   desc: string;
   color: string;
+  isLectureType?: boolean;
 }

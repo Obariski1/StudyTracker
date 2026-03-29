@@ -32,7 +32,7 @@ export class SupabaseService {
       console.log('Supabase: Fetching topics...');
       const { data, error } = await this.supabase
         .from('topics')
-        .select('id, name, desc, color')
+        .select('id, name, desc, color, islecturetype')
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -45,7 +45,8 @@ export class SupabaseService {
         id: t.id,
         name: t.name,
         desc: t.desc,
-        color: t.color
+        color: t.color,
+        isLectureType: !!(t.islecturetype)
       })) || [];
     } catch (error) {
       console.error('Supabase Exception (getTopics):', error);
@@ -61,7 +62,8 @@ export class SupabaseService {
         .insert([{
           name: topic.name,
           desc: topic.desc,
-          color: topic.color
+          color: topic.color,
+          islecturetype: !!(topic.isLectureType)
         }])
         .select();
       
@@ -79,17 +81,28 @@ export class SupabaseService {
   }
 
   async updateTopic(id: string, topic: any) {
-    const { data, error } = await this.supabase
-      .from('topics')
-      .update({
-        name: topic.name,
-        desc: topic.desc,
-        color: topic.color
-      })
-      .eq('id', id)
-      .select();
-    if (error) throw error;
-    return data?.[0];
+    try {
+      const { data, error } = await this.supabase
+        .from('topics')
+        .update({
+          name: topic.name,
+          desc: topic.desc,
+          color: topic.color,
+          islecturetype: !!(topic.isLectureType)
+        })
+        .eq('id', id)
+        .select();
+      
+      if (error) {
+        console.error('Supabase Error (updateTopic):', error);
+        throw error;
+      }
+      
+      return data?.[0];
+    } catch (error) {
+      console.error('Supabase Exception (updateTopic):', error);
+      throw error;
+    }
   }
 
   async deleteTopic(id: string) {

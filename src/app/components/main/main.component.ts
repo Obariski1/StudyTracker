@@ -10,7 +10,7 @@ import { Topic } from '../../models/topic.model';
 import { StudySession } from '../../models/session.model';
 import { Todo } from '../../models/todo.model';
 
-interface DayBar { label: string; secs: number; isToday: boolean; dateIso: string; }
+interface DayBar { label: string; secsLearning: number; secsLecture: number; isToday: boolean; dateIso: string; }
 
 @Component({
   selector: 'app-main',
@@ -65,6 +65,7 @@ export class MainComponent implements OnInit, OnDestroy {
   displayedSessions: StudySession[] = [];
   statTotal = '0m';
   statAverage = '0m';
+  statLectureTotal = '0m';
   statWeeklyAverage = '0h 0min';
 
   private subs = new Subscription();
@@ -406,16 +407,22 @@ export class MainComponent implements OnInit, OnDestroy {
     weekEndExclusive.setDate(weekStart.getDate() + 7);
     const weekStartIso = this.toDateIsoInTimeZone(weekStart, this.appTimeZone);
     const weekEndExclusiveIso = this.toDateIsoInTimeZone(weekEndExclusive, this.appTimeZone);
+    const lectureTopicIds = this.topics.filter(t => t.isLectureType).map(t => t.id);
 
     const weekSessions = sessions.filter(s => {
       const sessionDayIso = this.toDateIsoInTimeZone(s.start, this.appTimeZone);
       return sessionDayIso >= weekStartIso && sessionDayIso < weekEndExclusiveIso;
     });
-    const weekSecs = weekSessions.reduce((a, s) => a + s.duration, 0);
+    
+    // Only count learning sessions for statistics (exclude lecture types)
+    const learningOnlySessions = weekSessions.filter(s => s.topicId === null || !lectureTopicIds.includes(s.topicId));
+    const weekSecs = learningOnlySessions.reduce((a, s) => a + s.duration, 0);
     this.statTotal = this.formatHM(weekSecs);
     const avgSecs = Math.round(weekSecs / 7);
     this.statAverage = this.formatHM(avgSecs);
-    this.statWeeklyAverage = this.formatHMVerbose(this.calculateWeeklyAverageSeconds(sessions));
+    const lectureSecs = weekSessions.filter(s => s.topicId !== null && lectureTopicIds.includes(s.topicId)).reduce((a, s) => a + s.duration, 0);
+    this.statLectureTotal = this.formatHM(lectureSecs);
+    this.statWeeklyAverage = this.formatHMVerbose(this.calculateWeeklyAverageSeconds(sessions, lectureTopicIds));
     this.selectedWeekLabel = this.buildWeekLabel(weekStart);
     this.weekBars = this.buildWeekBars(sessions, weekStart);
     this.recentSessions = weekSessions
@@ -465,14 +472,24 @@ export class MainComponent implements OnInit, OnDestroy {
   private buildWeekBars(sessions: StudySession[], weekStart: Date): DayBar[] {
     const labels = ['Mo', 'Di', 'Mi', 'Do', 'Fr', 'Sa', 'So'];
     const todayIso = this.toDateIsoInTimeZone(new Date(), this.appTimeZone);
+    const lectureTopics = this.topics.filter(t => t.isLectureType).map(t => t.id);
+
     return labels.map((label, i) => {
       const day = new Date(weekStart);
       day.setDate(weekStart.getDate() + i);
       const dayIso = this.toDateIsoInTimeZone(day, this.appTimeZone);
-      const secs = sessions
-        .filter(s => this.toDateIsoInTimeZone(s.start, this.appTimeZone) === dayIso)
+      
+      const daySessions = sessions.filter(s => this.toDateIsoInTimeZone(s.start, this.appTimeZone) === dayIso);
+      
+      const secsLearning = daySessions
+        .filter(s => s.topicId === null || !lectureTopics.includes(s.topicId))
         .reduce((a, s) => a + s.duration, 0);
-      return { label, secs, isToday: dayIso === todayIso, dateIso: dayIso };
+      
+      const secsLecture = daySessions
+        .filter(s => s.topicId !== null && lectureTopics.includes(s.topicId))
+        .reduce((a, s) => a + s.duration, 0);
+
+      return { label, secsLearning, secsLecture, isToday: dayIso === todayIso, dateIso: dayIso };
     });
   }
 
@@ -488,19 +505,25 @@ export class MainComponent implements OnInit, OnDestroy {
       .sort((a, b) => new Date(b.end).getTime() - new Date(a.end).getTime());
   }
 
-  private calculateWeeklyAverageSeconds(sessions: StudySession[]): number {
+  private calculateWeeklyAverageSeconds(sessions: StudySession[], lectureTopicIds?: string[]): number {
     if (sessions.length === 0) {
       return 0;
     }
 
+    const lectureIds = lectureTopicIds || [];
+    const learningOnlySessions = sessions.filter(s => s.topicId === null || !lectureIds.includes(s.topicId));
+    
     const weeklyTotals = new Map<string, number>();
 
-    for (const session of sessions) {
+    for (const session of learningOnlySessions) {
       const weekKey = this.getWeekKeyInTimeZone(session.start);
       weeklyTotals.set(weekKey, (weeklyTotals.get(weekKey) ?? 0) + session.duration);
     }
 
     const totals = Array.from(weeklyTotals.values());
+    if (totals.length === 0) {
+      return 0;
+    }
     const totalSeconds = totals.reduce((acc, value) => acc + value, 0);
     return Math.round(totalSeconds / totals.length);
   }
@@ -521,11 +544,24 @@ export class MainComponent implements OnInit, OnDestroy {
   }
 
   get maxBarSecs(): number {
-    return Math.max(...this.weekBars.map(b => b.secs), 1);
+    const maxPerBar = this.weekBars.map(b => b.secsLearning + b.secsLecture);
+    return Math.max(...maxPerBar, 1);
   }
 
   barHeight(secs: number): number {
     return Math.max(4, (secs / this.maxBarSecs) * 100);
+  }
+
+  learningPx(bar: DayBar): number {
+    const total = bar.secsLearning + bar.secsLecture;
+    if (total === 0) return 4;
+    return (bar.secsLearning / total) * this.barHeight(total);
+  }
+
+  lecturePx(bar: DayBar): number {
+    const total = bar.secsLearning + bar.secsLecture;
+    if (total === 0) return 0;
+    return (bar.secsLecture / total) * this.barHeight(total);
   }
 
   private calcStreak(sessions: StudySession[]): number {
