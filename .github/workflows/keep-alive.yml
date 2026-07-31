@@ -1,0 +1,29 @@
+name: Keep Supabase Project Alive
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 9 */3 * *"
+
+jobs:
+  ping:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Ping Supabase REST API
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
+        run: |
+          echo "Pinging $SUPABASE_URL ..."
+          http_status=$(curl -s -o /dev/null -w "%{http_code}" \
+            "$SUPABASE_URL/rest/v1/topics?select=id&limit=1" \
+            -H "apikey: $SUPABASE_ANON_KEY" \
+            -H "Authorization: Bearer $SUPABASE_ANON_KEY")
+
+          echo "Response status: $http_status"
+          if [ "$http_status" -ge 500 ] || [ "$http_status" -eq 000 ]; then
+            echo "Ping failed. Supabase may be unreachable."
+            exit 1
+          fi
+
+          echo "Ping succeeded."
