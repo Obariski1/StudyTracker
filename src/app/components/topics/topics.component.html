@@ -2,37 +2,82 @@
 
   <div class="topics-header">
     <div class="page-title">Themen</div>
-    <button class="btn-add" (click)="openModal()">+ Thema hinzufügen</button>
+    <div class="topics-header-actions">
+      <label class="current-semester-control">
+        <span>Aktuelles Semester</span>
+        <select
+          class="form-control current-semester-select"
+          [ngModel]="selectedCurrentSemester"
+          (ngModelChange)="setCurrentSemesterSelection($event)">
+          <option value="auto">Automatisch</option>
+          <option *ngFor="let label of currentSemesterChoices" [value]="label">{{ label }}</option>
+        </select>
+      </label>
+      <button class="btn-add" (click)="openModal()">+ Thema hinzufügen</button>
+    </div>
   </div>
 
-  <div class="topics-grid">
+  <div class="topics-folders">
     <div *ngIf="topics.length === 0" class="empty-topics">
       Noch keine Themen.<br>Füge dein erstes Thema hinzu, um zu beginnen! 📚
     </div>
 
-    <div class="topic-card" *ngFor="let t of topics">
-      <div class="topic-card-accent" [style.background]="t.color"></div>
-      <div class="topic-card-name">{{ t.name }}</div>
-      <div class="topic-card-desc">{{ t.desc || 'Keine Beschreibung' }}</div>
-      <div class="topic-card-stats">
-        <div class="topic-stat">
-          <div class="topic-stat-val" [style.color]="t.color">{{ totalTime(t.id) }}</div>
-          <div class="topic-stat-lbl">Gesamtzeit</div>
+    <ng-container *ngFor="let group of topicGroups">
+      <button
+        type="button"
+        class="semester-folder-btn"
+        [class.is-open]="isSemesterOpen(group.label)"
+        [class.is-current]="isCurrentSemester(group.label)"
+        (click)="toggleSemester(group.label)">
+        <div class="semester-folder-top">
+          <span class="semester-folder-icon">{{ isSemesterOpen(group.label) ? '📂' : '📁' }}</span>
+          <span class="semester-folder-label">{{ group.label }}</span>
+          <span *ngIf="isCurrentSemester(group.label)" class="semester-current-chip">Aktuell</span>
+          <div class="semester-folder-stats">
+            <div class="topic-stat">
+              <div class="topic-stat-val">{{ semesterTotalTime(group.label) }}</div>
+              <div class="topic-stat-lbl">Gesamtzeit</div>
+            </div>
+            <div class="topic-stat">
+              <div class="topic-stat-val">{{ semesterSessionCount(group.label) }}</div>
+              <div class="topic-stat-lbl">Sitzungen</div>
+            </div>
+            <div class="topic-stat">
+              <div class="topic-stat-val">{{ semesterTodoCount(group.label) }}</div>
+              <div class="topic-stat-lbl">Todo</div>
+            </div>
+          </div>
+          <span class="semester-folder-count">{{ group.topics.length }}</span>
         </div>
-        <div class="topic-stat">
-          <div class="topic-stat-val" [style.color]="t.color">{{ sessionCount(t.id) }}</div>
-          <div class="topic-stat-lbl">Sitzungen</div>
-        </div>
-        <div class="topic-stat">
-          <div class="topic-stat-val" [style.color]="t.color">{{ todoCount(t.id) }}</div>
-          <div class="topic-stat-lbl">Todo</div>
+      </button>
+
+      <div *ngIf="isSemesterOpen(group.label)" class="topics-grid">
+        <div class="topic-card" *ngFor="let t of group.topics">
+          <div class="topic-card-accent" [style.background]="t.color"></div>
+          <div class="topic-card-name">{{ t.name }}</div>
+          <div class="topic-card-semester">{{ t.semester || 'Ohne Semester' }}</div>
+          <div class="topic-card-desc">{{ t.desc || 'Keine Beschreibung' }}</div>
+          <div class="topic-card-stats">
+            <div class="topic-stat">
+              <div class="topic-stat-val" [style.color]="t.color">{{ totalTime(t.id) }}</div>
+              <div class="topic-stat-lbl">Gesamtzeit</div>
+            </div>
+            <div class="topic-stat">
+              <div class="topic-stat-val" [style.color]="t.color">{{ sessionCount(t.id) }}</div>
+              <div class="topic-stat-lbl">Sitzungen</div>
+            </div>
+            <div class="topic-stat">
+              <div class="topic-stat-val" [style.color]="t.color">{{ todoCount(t.id) }}</div>
+              <div class="topic-stat-lbl">Todo</div>
+            </div>
+          </div>
+          <div class="topic-actions">
+            <button class="btn-sm" (click)="openModal(t)">Bearbeiten</button>
+            <button class="btn-sm danger" (click)="deleteTopic(t)">Löschen</button>
+          </div>
         </div>
       </div>
-      <div class="topic-actions">
-        <button class="btn-sm" (click)="openModal(t)">Bearbeiten</button>
-        <button class="btn-sm danger" (click)="deleteTopic(t)">Löschen</button>
-      </div>
-    </div>
+    </ng-container>
   </div>
 
   <!-- Modal -->

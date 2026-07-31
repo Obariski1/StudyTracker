@@ -5,6 +5,20 @@ import { Topic } from '../../../models/topic.model';
 import { StorageService } from '../../../services/storage.service';
 
 const COLORS = ['#c8f04c','#7b6ef6','#f06060','#60c0f0','#f0a060','#60f0b0','#f060b0','#a0c0ff'];
+const SEMESTERS = [
+  '1. Semester',
+  '2. Semester',
+  '3. Semester',
+  '4. Semester',
+  '5. Semester',
+  '6. Semester',
+  '7. Semester',
+  '8. Semester',
+  '9. Semester',
+  '10. Semester',
+  '11. Semester',
+  '12. Semester',
+];
 
 @Component({
   selector: 'app-topic-modal',
@@ -37,6 +51,13 @@ const COLORS = ['#c8f04c','#7b6ef6','#f06060','#60c0f0','#f0a060','#60f0b0','#f0
             </div>
           </div>
           <div class="form-group">
+            <label class="form-label">Semester</label>
+            <select class="form-control" [(ngModel)]="selectedSemester" name="selectedSemester">
+              <option value="">— Ohne Semester —</option>
+              <option *ngFor="let semester of semesters" [value]="semester">{{ semester }}</option>
+            </select>
+          </div>
+          <div class="form-group">
             <label class="topic-checkbox-label">
               <input type="checkbox" [(ngModel)]="isLectureType" name="isLectureType" />
               <span>Nicht in Gesamtlernzeit zählen (z.B. Vorlesungen)</span>
@@ -59,8 +80,10 @@ export class TopicModalComponent implements OnChanges {
   name = '';
   desc = '';
   selectedColor = COLORS[0];
+  selectedSemester = '';
   isLectureType = false;
   colors = COLORS;
+  semesters = SEMESTERS;
 
   constructor(private storage: StorageService) {}
 
@@ -69,11 +92,13 @@ export class TopicModalComponent implements OnChanges {
       this.name = this.editTopic.name;
       this.desc = this.editTopic.desc;
       this.selectedColor = this.editTopic.color;
+      this.selectedSemester = this.editTopic.semester ?? '';
       this.isLectureType = this.editTopic.isLectureType ?? false;
     } else {
       this.name = '';
       this.desc = '';
       this.selectedColor = COLORS[0];
+      this.selectedSemester = '';
       this.isLectureType = false;
     }
   }
@@ -85,6 +110,7 @@ export class TopicModalComponent implements OnChanges {
       name: this.name.trim(),
       desc: this.desc.trim(),
       color: this.selectedColor,
+      semester: this.selectedSemester || null,
       isLectureType: this.isLectureType,
     });
     this.saved.emit();

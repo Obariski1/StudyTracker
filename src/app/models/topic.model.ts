@@ -4,4 +4,5 @@ export interface Topic {
   desc: string;
   color: string;
   isLectureType?: boolean;
+  semester?: string | null;
 }

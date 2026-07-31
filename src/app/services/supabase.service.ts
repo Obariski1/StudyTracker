@@ -32,7 +32,7 @@ export class SupabaseService {
       console.log('Supabase: Fetching topics...');
       const { data, error } = await this.supabase
         .from('topics')
-        .select('id, name, desc, color, islecturetype')
+        .select('id, name, desc, color, islecturetype, semester')
         .order('created_at', { ascending: false });
       
       if (error) {
@@ -46,7 +46,8 @@ export class SupabaseService {
         name: t.name,
         desc: t.desc,
         color: t.color,
-        isLectureType: !!(t.islecturetype)
+        isLectureType: !!(t.islecturetype),
+        semester: t.semester ?? null,
       })) || [];
     } catch (error) {
       console.error('Supabase Exception (getTopics):', error);
@@ -63,7 +64,8 @@ export class SupabaseService {
           name: topic.name,
           desc: topic.desc,
           color: topic.color,
-          islecturetype: !!(topic.isLectureType)
+          islecturetype: !!(topic.isLectureType),
+          semester: topic.semester ?? null,
         }])
         .select();
       
@@ -88,7 +90,8 @@ export class SupabaseService {
           name: topic.name,
           desc: topic.desc,
           color: topic.color,
-          islecturetype: !!(topic.isLectureType)
+          islecturetype: !!(topic.isLectureType),
+          semester: topic.semester ?? null,
         })
         .eq('id', id)
         .select();
